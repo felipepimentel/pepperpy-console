@@ -1,7 +1,7 @@
 """Plugin management for PepperPy CLI."""
 
 from pathlib import Path
-from typing import Dict, Type
+from typing import Dict
 
 from .command import Command
 

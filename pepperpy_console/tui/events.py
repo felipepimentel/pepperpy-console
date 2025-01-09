@@ -1,9 +1,8 @@
 """Event system for TUI applications."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Callable, Awaitable
 
 import structlog
-from textual.message import Message
 
 logger = structlog.get_logger(__name__)
 
@@ -12,14 +11,14 @@ class EventManager:
     """Event manager for handling application events.
 
     Attributes:
-        listeners (Dict[str, List[callable]]): Event listeners
+        listeners (Dict[str, List[Callable[..., Awaitable[None]]]]): Event listeners
     """
 
     def __init__(self) -> None:
         """Initialize the event manager."""
-        self.listeners: Dict[str, List[callable]] = {}
+        self.listeners: Dict[str, List[Callable[..., Awaitable[None]]]] = {}
 
-    def on(self, event: str, handler: callable) -> None:
+    def on(self, event: str, handler: Callable[..., Awaitable[None]]) -> None:
         """Register an event handler.
 
         Args:
@@ -31,7 +30,7 @@ class EventManager:
         self.listeners[event].append(handler)
         logger.debug(f"Registered event handler for {event}")
 
-    def off(self, event: str, handler: Optional[callable] = None) -> None:
+    def off(self, event: str, handler: Optional[Callable[..., Awaitable[None]]] = None) -> None:
         """Remove an event handler.
 
         Args:

@@ -1,6 +1,5 @@
 """Base screen for PepperPy TUI."""
 
-from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import Static
 

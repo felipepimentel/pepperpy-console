@@ -1,6 +1,8 @@
 """Loading screen for PepperPy TUI."""
 
-from textual.app import ComposeResult
+from typing import AsyncGenerator
+
+from textual.widget import Widget
 from textual.widgets import Label, LoadingIndicator
 
 from .base import PepperScreen
@@ -18,7 +20,7 @@ class LoadingScreen(PepperScreen):
         super().__init__()
         self.message = message
 
-    async def compose(self):
+    async def compose(self) -> AsyncGenerator[Widget, None]:
         """Compose the loading screen layout.
 
         Yields:

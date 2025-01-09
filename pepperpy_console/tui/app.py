@@ -5,7 +5,6 @@ from typing import Dict, Type
 
 from textual.app import App, ComposeResult
 from textual.screen import Screen
-from textual.widget import Widget
 from textual.widgets import Static
 
 from ..cli.command import CommandGroup

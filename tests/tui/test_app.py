@@ -2,9 +2,8 @@
 
 from pathlib import Path
 import pytest
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock
 
-from pepperpy_console.cli.plugin import PluginManager
 from pepperpy_console.tui.app import PepperApp
 from pepperpy_console.tui.screens import PepperScreen
 

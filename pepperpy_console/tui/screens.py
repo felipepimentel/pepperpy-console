@@ -1,12 +1,9 @@
 """Screen classes for PepperPy Console."""
 
-from typing import AsyncIterator
+from typing import AsyncGenerator
 
 from textual.screen import Screen
 from textual.widgets import LoadingIndicator, Static
-from textual.app import App, ComposeResult
-
-from .widgets.base import PepperWidget
 
 
 class PepperScreen(Screen):
@@ -17,7 +14,7 @@ class PepperScreen(Screen):
 
     BINDINGS = []
 
-    async def compose(self) -> AsyncIterator[Static]:
+    async def compose(self) -> AsyncGenerator[Static, None]:
         """Compose the screen layout.
 
         This method should be overridden by subclasses.
@@ -28,7 +25,7 @@ class PepperScreen(Screen):
         yield Static("Base PepperPy Screen")
 
 
-class LoadingScreen(Screen):
+class LoadingScreen(PepperScreen):
     """Loading screen widget.
 
     Attributes:
@@ -44,21 +41,25 @@ class LoadingScreen(Screen):
         super().__init__()
         self.message = message
 
-    async def compose(self) -> AsyncIterator[Static]:
+    async def compose(self) -> AsyncGenerator[Static | LoadingIndicator, None]:
         """Compose the loading screen.
 
         Returns:
-            AsyncIterator[Static]: Loading screen composition result
+            AsyncGenerator[Static | LoadingIndicator, None]: Loading screen composition result
         """
         yield Static(self.message)
         yield LoadingIndicator()
 
     async def remove(self) -> None:
-        """Remove the screen from the app."""
+        """Remove the loading screen from the app.
+        
+        This method is called when the loading screen needs to be removed from the app.
+        It performs any necessary cleanup before the screen is removed.
+        """
         pass
 
 
-class ErrorScreen(Screen):
+class ErrorScreen(PepperScreen):
     """Error screen with an error message.
 
     Attributes:
@@ -74,7 +75,7 @@ class ErrorScreen(Screen):
         super().__init__()
         self.message = message
 
-    async def compose(self) -> AsyncIterator[Static]:
+    async def compose(self) -> AsyncGenerator[Static, None]:
         """Compose the error screen layout.
 
         Yields:

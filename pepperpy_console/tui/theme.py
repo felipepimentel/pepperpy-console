@@ -1,7 +1,7 @@
 """Theme management for PepperPy TUI."""
 
 from pathlib import Path
-from typing import Dict, Optional, Any, ClassVar
+from typing import Dict, Optional, Any
 import yaml
 
 
