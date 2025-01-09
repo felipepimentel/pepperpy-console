@@ -10,6 +10,7 @@ packages = [{ include = "pepperpy_console" }]
 python = "^3.12"
 rich = "^13.7.0"
 pepperpy-core = "*"
+textual = "^0.52.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
