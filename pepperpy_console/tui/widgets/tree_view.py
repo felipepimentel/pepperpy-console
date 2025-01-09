@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import structlog
 from textual.containers import Container
+from textual.message import Message
 from textual.widgets import Static
 
 from .base import PepperWidget
@@ -21,6 +22,22 @@ class TreeNode(PepperWidget, Static):
         level (int): Node indentation level
         data (Any): Optional associated data
     """
+
+    class NodeClicked(Message):
+        """Node clicked message.
+
+        Attributes:
+            node (TreeNode): Clicked node
+        """
+
+        def __init__(self, node: "TreeNode") -> None:
+            """Initialize node clicked message.
+
+            Args:
+                node: Clicked node
+            """
+            super().__init__()
+            self.node = node
 
     DEFAULT_CSS = """
     TreeNode {
@@ -93,10 +110,10 @@ class TreeNode(PepperWidget, Static):
             self.is_expanded = not self.is_expanded
             self.refresh()
 
-    def on_click(self) -> None:
+    async def on_click(self) -> None:
         """Handle click events."""
         self.toggle()
-        self.emit_no_wait("node_clicked", self)
+        await self.emit_no_wait(self.NodeClicked(self))
 
 
 class TreeView(PepperWidget, Container):
@@ -196,6 +213,6 @@ class TreeView(PepperWidget, Container):
         node.add_class("-selected")
         self.selected_node = node
 
-    def on_tree_node_clicked(self, event: TreeNode.NodeClicked) -> None:
+    async def on_tree_node_node_clicked(self, message: TreeNode.NodeClicked) -> None:
         """Handle node click events."""
-        self.select_node(event.node)
+        self.select_node(message.node)

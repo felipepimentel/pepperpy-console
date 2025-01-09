@@ -4,7 +4,6 @@ from typing import Any, Optional
 
 import structlog
 from textual.containers import Container
-from textual.geometry import Offset
 from textual.widgets import Static
 
 from .base import PepperWidget
@@ -119,16 +118,17 @@ class TooltipContainer(PepperWidget, Container):
         if self.tooltip:
             yield self.tooltip
 
-    def show_tooltip(self, offset: Optional[Offset] = None) -> None:
+    def show_tooltip(self, x: Optional[int] = None, y: Optional[int] = None) -> None:
         """Show the tooltip.
 
         Args:
-            offset: Optional position offset
+            x: Optional x position
+            y: Optional y position
         """
         if self.tooltip:
             self.tooltip.add_class("-visible")
-            if offset:
-                self.tooltip.styles.offset = offset
+            if x is not None and y is not None:
+                self.tooltip.styles.margin = (y, x)
 
     def hide_tooltip(self) -> None:
         """Hide the tooltip."""

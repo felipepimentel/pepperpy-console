@@ -5,14 +5,15 @@ from typing import Any, Optional
 import structlog
 from rich.progress import Progress as RichProgress
 from rich.progress import TaskID
-from textual.widgets import ProgressBar
+from textual.widgets import LoadingIndicator
+from textual.widgets import Static
 
 from .base import PepperWidget
 
 logger = structlog.get_logger(__name__)
 
 
-class Progress(PepperWidget, ProgressBar):
+class Progress(PepperWidget, Static):
     """Enhanced progress bar with status messages.
 
     Attributes:
@@ -34,6 +35,12 @@ class Progress(PepperWidget, ProgressBar):
         super().__init__(*args, **kwargs)
         self.total = total
         self.status = status
+        self.percentage = 0.0
+        self._loading = LoadingIndicator()
+
+    def compose(self) -> None:
+        """Compose the progress widget layout."""
+        yield self._loading
 
     async def update(self, progress: float, status: Optional[str] = None) -> None:
         """Update progress and status.
@@ -46,6 +53,7 @@ class Progress(PepperWidget, ProgressBar):
 
         if status is not None:
             self.status = status
+            self.update(f"{self.status} ({self.percentage:.1f}%)")
 
         await self.events.emit(
             "progress",

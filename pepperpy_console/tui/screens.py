@@ -1,114 +1,83 @@
-"""Screen components for TUI applications."""
+"""Screen classes for PepperPy Console."""
 
-from typing import Any
+from typing import AsyncIterator
 
-import structlog
-from textual.containers import Container
 from textual.screen import Screen
-from textual.widgets import Label, LoadingIndicator
+from textual.widgets import LoadingIndicator, Static
+from textual.app import App, ComposeResult
 
-logger = structlog.get_logger(__name__)
+from .widgets.base import PepperWidget
 
 
 class PepperScreen(Screen):
-    """Base screen with common functionality.
+    """Base screen class for PepperPy Console.
 
-    This class provides a base for all application screens with common
-    layout and styling.
+    All screens should inherit from this class.
     """
 
-    DEFAULT_CSS = """
-    PepperScreen {
-        background: $background;
-        color: $text;
-    }
+    BINDINGS = []
 
-    PepperScreen Container {
-        width: 100%;
-        height: 100%;
-        padding: 1;
-    }
+    async def compose(self) -> AsyncIterator[Static]:
+        """Compose the screen layout.
 
-    PepperScreen ScrollableContainer {
-        width: 100%;
-        height: 100%;
-        border: solid $primary;
-    }
+        This method should be overridden by subclasses.
+
+        Yields:
+            Static: Screen widgets
+        """
+        yield Static("Base PepperPy Screen")
+
+
+class LoadingScreen(Screen):
+    """Loading screen widget.
+
+    Attributes:
+        message (str): Loading message to display
     """
 
-    def compose(self):
-        """Compose the screen layout."""
-        yield Container()
-
-
-class LoadingScreen(PepperScreen):
-    """Loading screen with progress indicator.
-
-    This screen is shown during long-running operations.
-    """
-
-    DEFAULT_CSS = """
-    LoadingScreen {
-        align: center middle;
-    }
-
-    LoadingScreen Label {
-        color: $text;
-        margin: 1;
-    }
-
-    LoadingScreen LoadingIndicator {
-        color: $primary;
-    }
-    """
-
-    def __init__(self, *args: Any, message: str = "Loading...", **kwargs: Any) -> None:
+    def __init__(self, message: str = "Loading...") -> None:
         """Initialize the loading screen.
 
         Args:
-            *args: Positional arguments
-            message: Loading message
-            **kwargs: Keyword arguments
+            message: Loading message to display
         """
-        super().__init__(*args, **kwargs)
+        super().__init__()
         self.message = message
 
-    def compose(self):
-        """Compose the loading screen layout."""
-        yield Container()
-        yield Label(self.message)
+    async def compose(self) -> AsyncIterator[Static]:
+        """Compose the loading screen.
+
+        Returns:
+            AsyncIterator[Static]: Loading screen composition result
+        """
+        yield Static(self.message)
         yield LoadingIndicator()
 
+    async def remove(self) -> None:
+        """Remove the screen from the app."""
+        pass
 
-class ErrorScreen(PepperScreen):
-    """Error screen for displaying error messages.
 
-    This screen is shown when an error occurs.
+class ErrorScreen(Screen):
+    """Error screen with an error message.
+
+    Attributes:
+        message (str): Error message
     """
 
-    DEFAULT_CSS = """
-    ErrorScreen {
-        align: center middle;
-    }
-
-    ErrorScreen Label {
-        color: $error;
-        margin: 1;
-    }
-    """
-
-    def __init__(self, *args: Any, error_message: str, **kwargs: Any) -> None:
+    def __init__(self, message: str) -> None:
         """Initialize the error screen.
 
         Args:
-            *args: Positional arguments
-            error_message: Error message
-            **kwargs: Keyword arguments
+            message: Error message
         """
-        super().__init__(*args, **kwargs)
-        self.error_message = error_message
+        super().__init__()
+        self.message = message
 
-    def compose(self):
-        """Compose the error screen layout."""
-        yield Container()
-        yield Label(self.error_message)
+    async def compose(self) -> AsyncIterator[Static]:
+        """Compose the error screen layout.
+
+        Yields:
+            Static: Screen widgets
+        """
+        yield Static(f"Error: {self.message}")

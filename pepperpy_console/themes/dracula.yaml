@@ -1,45 +1,24 @@
-name: Dracula
-
+name: dracula
 colors:
-  # Base colors
-  primary: "#bd93f9" # Purple
-  secondary: "#6272a4" # Comment
-  accent: "#ff79c6" # Pink
-  background: "#282a36" # Background
-  text: "#f8f8f2" # Foreground
-  error: "#ff5555" # Red
-  warning: "#ffb86c" # Orange
-  success: "#50fa7b" # Green
-  info: "#8be9fd" # Cyan
-  selection: "#44475a" # Current Line
-
-  # UI variants
-  surface: "#1e1f29" # Darker background
-  surface-darken-1: "#191a23" # Even darker background
-  surface-lighten-1: "#373844" # Lighter background
-  text-muted: "#6272a4" # Muted text
-  text-disabled: "#4a4b53" # Disabled text
-  primary-lighten-2: "#d6b6ff" # Lighter primary
-  primary-darken-1: "#9d65ff" # Darker primary
-  error-lighten-2: "#ff8585" # Lighter error
-  success-lighten-2: "#85ffa2" # Lighter success
-
-metrics:
-  spacing:
-    xs: 1
-    sm: 2
-    md: 4
-    lg: 8
-    xl: 16
-
-  sizes:
-    icon: 1
-    input: 3
-    header: 3
-    footer: 3
-    sidebar: 30
-
-  breakpoints:
-    sm: 40
-    md: 80
-    lg: 120
+  primary: "#bd93f9"
+  secondary: "#44475a"
+  accent: "#ff79c6"
+  background: "#282a36"
+  text: "#f8f8f2"
+  error: "#ff5555"
+  warning: "#ffb86c"
+  success: "#50fa7b"
+styles:
+  button:
+    color: text
+    background: secondary
+    hover:
+      background: accent
+  text:
+    color: text
+  heading:
+    color: primary
+  link:
+    color: accent
+    hover:
+      color: primary

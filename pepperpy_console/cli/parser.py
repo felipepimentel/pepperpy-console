@@ -1,113 +1,82 @@
-"""Command line argument parsing."""
+"""Command parser for PepperPy CLI."""
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
-
-import structlog
-
-from .command import Command, CommandGroup
-
-logger = structlog.get_logger(__name__)
+from dataclasses import dataclass
+from typing import List, Optional
 
 
 @dataclass
-class ArgumentSpec:
-    """Specification for a command line argument.
+class ParsedCommand:
+    """Parsed command data.
 
     Attributes:
-        name (str): Argument name
-        type (type): Expected argument type
-        help (str): Help text
-        required (bool): Whether the argument is required
-        default (Any): Default value if not required
+        name (str): Command name
+        args (List[str]): Command arguments
     """
 
     name: str
-    type: type
-    help: str
-    required: bool = True
-    default: Any = None
+    args: List[str]
 
 
-@dataclass
-class ArgumentParser:
-    """Enhanced argument parser with validation and logging.
+class CommandParser:
+    """Parser for command strings."""
 
-    Attributes:
-        program (str): Program name
-        description (str): Program description
-        commands (Dict[str, Union[Command, CommandGroup]]): Available commands
-    """
-
-    program: str
-    description: str
-    commands: Dict[str, Union[Command, CommandGroup]] = field(default_factory=dict)
-
-    async def parse_args(self, args: List[str]) -> Dict[str, Any]:
-        """Parse command line arguments.
+    async def parse(self, command_str: str) -> Optional[tuple[str, dict]]:
+        """Parse a command string.
 
         Args:
-            args: List of command line arguments
+            command_str: Command string to parse
 
         Returns:
-            Dict[str, Any]: Parsed and validated arguments
-
-        Raises:
-            ValueError: If validation fails
+            Tuple of command name and arguments, or None if input is empty
         """
-        if not args:
-            return {"help": True}
+        # Handle empty input
+        if not command_str or command_str.isspace():
+            return None
 
-        command_name = args[0]
-        command = self.commands.get(command_name)
+        # Split command string into parts
+        parts = command_str.strip().split()
+        if not parts:
+            return None
 
-        if not command:
-            logger.error(f"Unknown command: {command_name}")
-            return {"help": True}
+        command_name = parts[0]
+        args = parts[1:]
 
-        try:
-            parsed = await self._parse_command_args(command, args[1:])
-            return {"command": command, "args": parsed}
-        except Exception as e:
-            logger.error(f"Failed to parse arguments: {e}")
-            return {"help": True}
+        if args:
+            return command_name, {"args": args}
+        return command_name, {}
 
-    async def _parse_command_args(
-        self, command: Command, args: List[str]
-    ) -> Dict[str, Any]:
-        """Parse arguments for a specific command.
+    def _split_args(self, args_str: str) -> List[str]:
+        """Split argument string into individual arguments.
 
         Args:
-            command: Command to parse arguments for
-            args: Command arguments
+            args_str: Argument string
 
         Returns:
-            Dict[str, Any]: Parsed arguments
+            List[str]: List of arguments
         """
-        result: Dict[str, Any] = {}
+        args = []
+        current_arg = []
+        in_quotes = False
+        quote_char = None
 
-        for arg_spec in command.arguments:
-            value = self._get_arg_value(args, arg_spec)
-            if value is not None:
-                result[arg_spec["name"]] = value
+        for char in args_str:
+            if char in ('"', "'"):
+                if not in_quotes:
+                    in_quotes = True
+                    quote_char = char
+                elif char == quote_char:
+                    in_quotes = False
+                    quote_char = None
+                else:
+                    current_arg.append(char)
+            elif char.isspace() and not in_quotes:
+                if current_arg:
+                    args.append("".join(current_arg))
+                    current_arg = []
+            else:
+                current_arg.append(char)
 
-        return result
+        if current_arg:
+            args.append("".join(current_arg))
 
-    def _get_arg_value(
-        self, args: List[str], arg_spec: Dict[str, Any]
-    ) -> Optional[Any]:
-        """Extract argument value from command line args.
-
-        Args:
-            args: Command line arguments
-            arg_spec: Argument specification
-
-        Returns:
-            Optional[Any]: Parsed argument value
-        """
-        name = arg_spec["name"]
-        for i, arg in enumerate(args):
-            if arg in [f"--{name}", f"-{name[0]}"]:
-                if i + 1 < len(args):
-                    return self._convert_value(args[i + 1], arg_spec)
-        return arg_spec.get("default")
+        return args

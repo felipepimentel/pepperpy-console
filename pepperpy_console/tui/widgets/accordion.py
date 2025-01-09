@@ -108,6 +108,7 @@ class AccordionItem(PepperWidget, Container):
     def on_click(self) -> None:
         """Handle click events."""
         self.toggle()
+        self.emit_no_wait("accordion_item_clicked", self)
 
 
 class Accordion(PepperWidget, Container):
@@ -165,10 +166,11 @@ class Accordion(PepperWidget, Container):
         for item in self.items:
             yield item
 
-    def on_accordion_item_click(self, event: AccordionItem.Clicked) -> None:
+    def on_accordion_item_clicked(self, event: Any) -> None:
         """Handle item clicks."""
+        clicked_item = event.sender
         if not self.allow_multiple:
             # Collapse other items
             for item in self.items:
-                if item != event.item and item.is_expanded:
+                if item != clicked_item and item.is_expanded:
                     item.toggle()

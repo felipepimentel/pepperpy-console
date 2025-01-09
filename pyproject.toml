@@ -10,7 +10,7 @@ packages = [{ include = "pepperpy_console" }]
 python = "^3.12"
 rich = "^13.7.0"
 pepperpy-core = "*"
-textual = "^0.52.1"
+textual = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
@@ -30,3 +30,10 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.setuptools.package-data]
 "pepperpy_console" = ["py.typed"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "asyncio: mark test as requiring asyncio event loop",
+]

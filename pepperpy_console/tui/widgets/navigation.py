@@ -5,7 +5,7 @@ from typing import Any, Callable, List, Optional
 
 import structlog
 from textual.widgets import Tree
-from textual.widgets.tree import TreeNode
+from textual.widgets.tree import TreeNode, NodeSelected
 
 from .base import PepperWidget
 
@@ -74,7 +74,7 @@ class Navigation(PepperWidget, Tree):
         for child in item.children:
             self._add_menu_item(node, child)
 
-    async def on_tree_node_selected(self, event: Tree.NodeSelected) -> None:
+    async def on_tree_node_selected(self, event: NodeSelected) -> None:
         """Handle node selection events.
 
         Args:

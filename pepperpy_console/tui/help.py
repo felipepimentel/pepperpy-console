@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 from rich.markdown import Markdown
-from textual.containers import Container, ScrollableContainer
+from textual.containers import Container, Vertical
 from textual.widgets import Static
 
 from .keyboard import KeyBinding
@@ -89,9 +89,10 @@ class HelpViewer(PepperWidget, Container):
         display: block;
     }
 
-    HelpViewer ScrollableContainer {
+    HelpViewer #content {
         height: 20;
         border: solid $primary;
+        overflow-y: scroll;
     }
     """
 
@@ -100,7 +101,7 @@ class HelpViewer(PepperWidget, Container):
         super().__init__(*args, **kwargs)
         self.sections: Dict[str, HelpSection] = {}
         self.current_section: Optional[str] = None
-        self._content = ScrollableContainer()
+        self._content = Vertical(id="content")
 
     def compose(self) -> None:
         """Compose the help viewer layout."""

@@ -43,3 +43,18 @@ metrics:
     sm: 40
     md: 80
     lg: 120
+
+styles:
+  button:
+    color: text
+    background: secondary
+    hover:
+      background: accent
+  text:
+    color: text
+  heading:
+    color: primary
+  link:
+    color: accent
+    hover:
+      color: primary

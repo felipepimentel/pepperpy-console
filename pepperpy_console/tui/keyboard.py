@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional
 
 import structlog
-from textual.binding import Binding
 
 from .events import event_manager
 
@@ -28,14 +27,6 @@ class KeyBinding:
     description: str
     handler: Optional[Callable] = None
     show: bool = True
-
-    def to_binding(self) -> Binding:
-        """Convert to Textual binding.
-
-        Returns:
-            Binding: Textual binding instance
-        """
-        return Binding(self.key, self.action, self.description, show=self.show)
 
 
 class KeyboardManager:
@@ -79,13 +70,13 @@ class KeyboardManager:
         """
         return self.bindings.get(action)
 
-    def get_textual_bindings(self) -> List[Binding]:
-        """Get all bindings in Textual format.
+    def get_bindings(self) -> List[KeyBinding]:
+        """Get all bindings.
 
         Returns:
-            List[Binding]: List of Textual bindings
+            List[KeyBinding]: List of key bindings
         """
-        return [binding.to_binding() for binding in self.bindings.values()]
+        return list(self.bindings.values())
 
     async def handle_action(self, action: str, *args: Any, **kwargs: Any) -> None:
         """Handle a key action.

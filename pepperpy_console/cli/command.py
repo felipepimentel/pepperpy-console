@@ -1,73 +1,83 @@
-"""Command system for CLI operations."""
+"""Command classes for PepperPy CLI."""
 
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
-
-import structlog
-
-logger = structlog.get_logger(__name__)
+from typing import Any, Callable, Dict, List, Optional, Awaitable
 
 
-@dataclass
 class Command:
-    """Base class for CLI commands.
+    """Command class for PepperPy CLI.
 
     Attributes:
         name (str): Command name
+        callback (Callable): Command callback function
         description (str): Command description
-        callback (Callable): Function to execute when command is called
-        arguments (List[Dict[str, Any]]): Command arguments configuration
+        aliases (List[str]): Command aliases
     """
 
-    name: str
-    description: str
-    callback: Callable
-    arguments: List[Dict[str, Any]] = field(default_factory=list)
-
-    async def execute(self, *args: Any, **kwargs: Any) -> Any:
-        """Execute the command.
+    def __init__(
+        self,
+        name: str,
+        callback: Callable[..., Awaitable[Any]],
+        description: str = "",
+        aliases: Optional[List[str]] = None,
+    ):
+        """Initialize a command.
 
         Args:
-            *args: Positional arguments to pass to the callback
-            **kwargs: Keyword arguments to pass to the callback
+            name: Command name
+            callback: Async callback function
+            description: Command description
+            aliases: Optional list of command aliases
+        """
+        self.name = name
+        self.callback = callback
+        self.description = description
+        self.aliases = aliases or []
+
+    async def execute(self, *args: Any, **kwargs: Any) -> Any:
+        """Execute the command with arguments.
+
+        Args:
+            *args: Positional arguments
+            **kwargs: Keyword arguments
 
         Returns:
-            Any: Result of the callback execution
+            Result of the callback function
         """
-        logger.debug(f"Executing command {self.name}")
         return await self.callback(*args, **kwargs)
 
 
-@dataclass
 class CommandGroup:
-    """Group of related commands.
+    """Group of related commands."""
 
-    Attributes:
-        name (str): Group name
-        description (str): Group description
-        commands (Dict[str, Command]): Commands in this group
-    """
-
-    name: str
-    description: str
-    commands: Dict[str, Command] = field(default_factory=dict)
+    def __init__(self):
+        """Initialize a command group."""
+        self.commands: Dict[str, Command] = {}
 
     def add_command(self, command: Command) -> None:
         """Add a command to the group.
 
         Args:
-            command (Command): Command to add
+            command: Command to add
         """
         self.commands[command.name] = command
-        logger.debug(f"Added command {command.name} to group {self.name}")
+        for alias in command.aliases:
+            self.commands[alias] = command
 
     def get_command(self, name: str) -> Optional[Command]:
         """Get a command by name.
 
         Args:
-            name (str): Command name
+            name: Command name
 
         Returns:
-            Optional[Command]: Command if found, None otherwise
+            Optional[Command]: Command if found
         """
         return self.commands.get(name)
+
+    def list_commands(self) -> Dict[str, Command]:
+        """List all commands in the group.
+
+        Returns:
+            Dict[str, Command]: Group commands
+        """
+        return self.commands

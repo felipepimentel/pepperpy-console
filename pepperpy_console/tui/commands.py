@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 import structlog
 from textual.containers import Container
+from textual.message import Message
 from textual.widgets import Input, ListView
 
 from .widgets.base import PepperWidget
@@ -38,6 +39,44 @@ class CommandPalette(PepperWidget, Container):
         commands (Dict[str, Command]): Available commands
         visible (bool): Whether palette is visible
     """
+
+    class CommandExecuted(Message):
+        """Command executed message.
+
+        Attributes:
+            name (str): Command name
+            category (str): Command category
+        """
+
+        def __init__(self, name: str, category: str) -> None:
+            """Initialize command executed message.
+
+            Args:
+                name: Command name
+                category: Command category
+            """
+            super().__init__()
+            self.name = name
+            self.category = category
+
+    class CommandError(Message):
+        """Command error message.
+
+        Attributes:
+            name (str): Command name
+            error (str): Error message
+        """
+
+        def __init__(self, name: str, error: str) -> None:
+            """Initialize command error message.
+
+            Args:
+                name: Command name
+                error: Error message
+            """
+            super().__init__()
+            self.name = name
+            self.error = error
 
     DEFAULT_CSS = """
     CommandPalette {
@@ -118,15 +157,16 @@ class CommandPalette(PepperWidget, Container):
         else:
             await self.show()
 
-    def on_input_changed(self, event: Input.Changed) -> None:
+    async def on_input_changed(self, message: Message) -> None:
         """Handle search input changes."""
-        self._update_list()
+        if isinstance(message.sender, Input):
+            self._update_list()
 
-    def on_list_view_selected(self, event: ListView.Selected) -> None:
+    async def on_list_view_selected(self, message: Message) -> None:
         """Handle command selection."""
-        if event.item is not None:
-            command = self._filtered_commands[event.item.index]
-            self._execute_command(command)
+        if isinstance(message.sender, ListView) and message.sender.highlighted is not None:
+            command = self._filtered_commands[message.sender.highlighted]
+            await self._execute_command(command)
 
     def _update_list(self) -> None:
         """Update the command list based on search."""
@@ -149,12 +189,8 @@ class CommandPalette(PepperWidget, Container):
         """
         try:
             await command.handler()
-            await self.events.emit(
-                "command_executed", {"name": command.name, "category": command.category}
-            )
+            await self.emit_no_wait(self.CommandExecuted(command.name, command.category))
             await self.hide()
         except Exception as e:
             logger.error(f"Error executing command {command.name}: {e}")
-            await self.events.emit(
-                "command_error", {"name": command.name, "error": str(e)}
-            )
+            await self.emit_no_wait(self.CommandError(command.name, str(e)))

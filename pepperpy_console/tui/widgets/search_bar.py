@@ -3,7 +3,7 @@
 from typing import Any, Callable, List, Optional
 
 import structlog
-from textual.containers import Horizontal
+from textual.containers import Horizontal, Container
 from textual.message import Message
 from textual.widgets import Input, Static
 
@@ -107,19 +107,20 @@ class SearchBar(PepperWidget, Horizontal):
         )
         yield Static("✕", id="clear-button")
 
-    def on_input_changed(self, event: Input.Changed) -> None:
+    async def on_input_changed(self, message: Message) -> None:
         """Handle input changes."""
-        value = event.value.strip()
-        self.emit_no_wait("search_changed", value)
-        if self.on_search:
-            self.call_after(self.debounce_ms / 1000, self.on_search, value)
+        if isinstance(message.sender, Input):
+            value = message.sender.value.strip()
+            await self.emit_no_wait(self.SearchChanged(value))
+            if self.on_search:
+                self.call_after(self.debounce_ms / 1000, self.on_search, value)
 
-    def on_click(self, event: Static.Clicked) -> None:
+    async def on_click(self, message: Message) -> None:
         """Handle clear button clicks."""
-        if event.target.id == "clear-button":
+        if message.sender.id == "clear-button":
             input_widget = self.query_one("#search-input", Input)
             input_widget.value = ""
-            self.emit_no_wait("search_cleared")
+            await self.emit_no_wait(self.SearchCleared())
             if self.on_clear:
                 self.on_clear()
 
