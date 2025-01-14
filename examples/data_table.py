@@ -5,12 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
-from pepperpy_console.tui.app import PepperApp
-from pepperpy_console.tui.commands import Command
-from pepperpy_console.tui.screens import PepperScreen
-from pepperpy_console.tui.widgets.containers import PepperVertical
-from pepperpy_console.tui.widgets.notification import NotificationCenter
-from pepperpy_console.tui.widgets.table import Column, PepperTable
+from pepperpy.tui.app import PepperApp
+from pepperpy.tui.commands import Command
+from pepperpy.tui.screens import PepperScreen
+from pepperpy.tui.widgets.containers import PepperVertical
+from pepperpy.tui.widgets.notification import NotificationCenter
+from pepperpy.tui.widgets.table import Column, PepperTable
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -123,7 +123,7 @@ class ExampleApp(PepperApp):
         self.command_manager.register_command(SortByNameCommand(self))
 
         # Load themes
-        themes_dir = Path(__file__).parent.parent / "pepperpy_console" / "themes"
+        themes_dir = Path(__file__).parent.parent / "pepperpy" / "themes"
         await self.load_themes(themes_dir)
 
     async def load_example_data(self) -> None:

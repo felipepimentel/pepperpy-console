@@ -171,7 +171,7 @@ All code reviews should check for:
 ```
 pepperpy-console/
 ├── docs/               # Documentation
-├── pepperpy_console/   # Main package
+├── pepperpy/   # Main package
 │   ├── cli/           # CLI components
 │   ├── tui/           # TUI components
 │   ├── themes/        # Theme system

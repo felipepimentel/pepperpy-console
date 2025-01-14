@@ -7,7 +7,7 @@ This guide will help you get started with PepperPy Console quickly.
 Create your first PepperPy Console application:
 
 ```python
-from pepperpy_console import PepperApp, PepperScreen, Static
+from pepperpy import PepperApp, PepperScreen, Static
 
 class WelcomeScreen(PepperScreen):
     async def compose(self):
@@ -32,7 +32,7 @@ python app.py
 Create a CLI application with commands:
 
 ```python
-from pepperpy_console import PepperApp, Command
+from pepperpy import PepperApp, Command
 
 class CLIApp(PepperApp):
     def __init__(self):
@@ -58,7 +58,7 @@ app.run()
 Build an interactive form:
 
 ```python
-from pepperpy_console import (
+from pepperpy import (
     PepperApp,
     PepperScreen,
     PepperForm,
@@ -93,7 +93,7 @@ Apply and switch themes:
 
 ```python
 from pathlib import Path
-from pepperpy_console import PepperApp, PepperScreen, Static
+from pepperpy import PepperApp, PepperScreen, Static
 
 class ThemedApp(PepperApp):
     async def on_mount(self):
@@ -113,7 +113,7 @@ app.run()
 Display data in tables:
 
 ```python
-from pepperpy_console import (
+from pepperpy import (
     PepperApp,
     PepperScreen,
     PepperTable,
@@ -147,7 +147,7 @@ app.run()
 Respond to user interactions:
 
 ```python
-from pepperpy_console import (
+from pepperpy import (
     PepperApp,
     PepperScreen,
     PepperWidget,
@@ -173,7 +173,7 @@ PepperPy Console uses the plugin system from `pepperpy-core`. To create and use 
 
 ```python
 from pepperpy_core.plugin import Plugin, PluginConfig
-from pepperpy_console import Command
+from pepperpy import Command
 
 class MyPlugin(Plugin):
     def configure(self) -> PluginConfig:

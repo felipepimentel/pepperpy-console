@@ -27,7 +27,7 @@ pip install pepperpy-console
 ## Quick Start
 
 ```python
-from pepperpy_console import PepperApp, PepperScreen, Static
+from pepperpy import PepperApp, PepperScreen, Static
 
 class WelcomeScreen(PepperScreen):
     async def compose(self):
@@ -57,7 +57,7 @@ Visit our [documentation](https://pepperpy-console.readthedocs.io/) for:
 ### CLI Application
 
 ```python
-from pepperpy_console import PepperApp, Command
+from pepperpy import PepperApp, Command
 
 class CLIApp(PepperApp):
     def __init__(self):
@@ -81,7 +81,7 @@ app.run()
 ### Data Table
 
 ```python
-from pepperpy_console import (
+from pepperpy import (
     PepperApp,
     PepperScreen,
     PepperTable,

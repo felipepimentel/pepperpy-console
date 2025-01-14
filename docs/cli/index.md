@@ -14,7 +14,7 @@ The `Command` class represents a single command that can be executed. Each comma
 - Optional aliases
 
 ```python
-from pepperpy_console import Command
+from pepperpy import Command
 
 async def my_command(arg1, arg2):
     return f"Processing {arg1} and {arg2}"
@@ -35,7 +35,7 @@ result = await cmd.execute("value1", "value2")
 The `CommandGroup` class allows you to organize related commands together:
 
 ```python
-from pepperpy_console import Command, CommandGroup
+from pepperpy import Command, CommandGroup
 
 group = CommandGroup()
 
@@ -55,7 +55,7 @@ commands = group.list_commands()
 The `CommandParser` class handles parsing command strings into executable commands:
 
 ```python
-from pepperpy_console import CommandParser
+from pepperpy import CommandParser
 
 parser = CommandParser()
 
@@ -72,7 +72,7 @@ if result:
 The CLI system includes a plugin architecture for extending functionality:
 
 ```python
-from pepperpy_console import Plugin, PluginManager
+from pepperpy import Plugin, PluginManager
 from pathlib import Path
 
 # Create a plugin
@@ -103,7 +103,7 @@ plugin = manager.get_plugin("my_plugin")
 Here's a complete example of building a CLI application:
 
 ```python
-from pepperpy_console import PepperApp, Command, CommandGroup
+from pepperpy import PepperApp, Command, CommandGroup
 
 class MyApp(PepperApp):
     def __init__(self):

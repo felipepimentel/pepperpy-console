@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING, Protocol
 from textual.containers import Container, Vertical
 from textual.widgets import Static
 
-from pepperpy_console.tui.app import PepperApp
-from pepperpy_console.tui.screens import PepperScreen
-from pepperpy_console.tui.widgets.base import PepperWidget
+from pepperpy.tui.app import PepperApp
+from pepperpy.tui.screens import PepperScreen
+from pepperpy.tui.widgets.base import PepperWidget
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

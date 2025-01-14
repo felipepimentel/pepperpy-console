@@ -74,7 +74,7 @@ poetry install --with test
 You can verify your installation by running:
 
 ```bash
-python -c "import pepperpy_console; print(pepperpy_console.__version__)"
+python -c "import pepperpy; print(pepperpy.__version__)"
 ```
 
 ## Platform Support

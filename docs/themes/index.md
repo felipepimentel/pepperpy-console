@@ -78,7 +78,7 @@ colors:
 ### Loading Themes
 
 ```python
-from pepperpy_console import ThemeManager
+from pepperpy import ThemeManager
 from pathlib import Path
 
 # Initialize theme manager

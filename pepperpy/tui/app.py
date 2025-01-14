@@ -9,11 +9,11 @@ from pepperpy_core.plugin import PluginConfig, PluginManager
 from textual.app import App, AwaitMount
 from textual.widgets import Static
 
-from pepperpy_console.theme import ThemeManager
-from pepperpy_console.tui.help import HelpViewer
-from pepperpy_console.tui.screens.exceptions import ScreenNotFoundError
-from pepperpy_console.tui.widgets.dialog import AlertDialog
-from pepperpy_console.tui.widgets.notification import NotificationCenter
+from pepperpy.theme import ThemeManager
+from pepperpy.tui.help import HelpViewer
+from pepperpy.tui.screens.exceptions import ScreenNotFoundError
+from pepperpy.tui.widgets.dialog import AlertDialog
+from pepperpy.tui.widgets.notification import NotificationCenter
 
 from .commands import CommandManager
 from .screens import PepperScreen

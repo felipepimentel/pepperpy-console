@@ -9,7 +9,7 @@ The Text User Interface (TUI) framework in PepperPy Console provides a rich set 
 The main application class that serves as the entry point for your TUI application:
 
 ```python
-from pepperpy_console import PepperApp, Static
+from pepperpy import PepperApp, Static
 
 class MyApp(PepperApp):
     def compose(self) -> ComposeResult:
@@ -28,7 +28,7 @@ The framework provides several screen types for different purposes:
 Base screen class that all custom screens should inherit from:
 
 ```python
-from pepperpy_console import PepperScreen, Static
+from pepperpy import PepperScreen, Static
 
 class MyScreen(PepperScreen):
     async def compose(self):
@@ -40,7 +40,7 @@ class MyScreen(PepperScreen):
 A built-in screen for displaying loading states:
 
 ```python
-from pepperpy_console import LoadingScreen
+from pepperpy import LoadingScreen
 
 # In your app
 await app.push_screen(LoadingScreen("Loading data..."))
@@ -51,7 +51,7 @@ await app.push_screen(LoadingScreen("Loading data..."))
 A screen for displaying error messages:
 
 ```python
-from pepperpy_console import ErrorScreen
+from pepperpy import ErrorScreen
 
 # In your app
 await app.push_screen(ErrorScreen("An error occurred"))
@@ -66,7 +66,7 @@ The framework includes a variety of widgets for building user interfaces:
 Base widget class with event handling capabilities:
 
 ```python
-from pepperpy_console import PepperWidget
+from pepperpy import PepperWidget
 
 class MyWidget(PepperWidget):
     def __init__(self):
@@ -82,7 +82,7 @@ class MyWidget(PepperWidget):
 The TUI framework includes a robust event system for handling user interactions:
 
 ```python
-from pepperpy_console import EventManager
+from pepperpy import EventManager
 
 # Create an event manager
 event_manager = EventManager()
@@ -105,7 +105,7 @@ event_manager.off("click", handle_click)
 The framework supports customizable themes:
 
 ```python
-from pepperpy_console import ThemeManager
+from pepperpy import ThemeManager
 from pathlib import Path
 
 # Initialize theme manager
@@ -165,7 +165,7 @@ styles:
 ### Complete Application Example
 
 ```python
-from pepperpy_console import (
+from pepperpy import (
     PepperApp,
     PepperScreen,
     PepperWidget,
@@ -197,7 +197,7 @@ app.run()
 ### Custom Widget with Events
 
 ```python
-from pepperpy_console import PepperWidget, Static
+from pepperpy import PepperWidget, Static
 
 class ClickableWidget(PepperWidget):
     def compose(self):
@@ -212,7 +212,7 @@ class ClickableWidget(PepperWidget):
 ### Screen with Loading State
 
 ```python
-from pepperpy_console import PepperScreen, LoadingScreen
+from pepperpy import PepperScreen, LoadingScreen
 
 class DataScreen(PepperScreen):
     async def load_data(self):

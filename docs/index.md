@@ -23,7 +23,7 @@ pip install pepperpy-console
 ### Basic Usage
 
 ```python
-from pepperpy_console import PepperApp
+from pepperpy import PepperApp
 
 class MyApp(PepperApp):
     def compose(self):

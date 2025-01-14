@@ -8,7 +8,7 @@ from textual.containers import Container
 from textual.message import Message
 from textual.widgets import Static
 
-from pepperpy_console.tui.widgets.base import PepperWidget
+from pepperpy.tui.widgets.base import PepperWidget
 
 if TYPE_CHECKING:
     from collections.abc import Generator

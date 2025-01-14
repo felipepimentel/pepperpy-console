@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 from textual.screen import Screen
 from textual.widgets import Static
 
-from pepperpy_console.tui.widgets.base import PepperWidget
+from pepperpy.tui.widgets.base import PepperWidget
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult

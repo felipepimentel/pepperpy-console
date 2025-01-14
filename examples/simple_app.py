@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING
 from textual.containers import Container, Vertical
 from textual.widgets import Footer, Header
 
-from pepperpy_console.tui.app import PepperApp
-from pepperpy_console.tui.forms import PepperForm
-from pepperpy_console.tui.screens import PepperScreen
+from pepperpy.tui.app import PepperApp
+from pepperpy.tui.forms import PepperForm
+from pepperpy.tui.screens import PepperScreen
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

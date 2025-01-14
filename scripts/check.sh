@@ -27,7 +27,7 @@ echo -e "${GREEN}Ruff passed!${NC}\n"
 
 # Type check
 echo -e "${YELLOW}Running mypy...${NC}"
-mypy pepperpy_console
+mypy pepperpy
 echo -e "${GREEN}Mypy passed!${NC}\n"
 
 # Run tests

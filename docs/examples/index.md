@@ -7,7 +7,7 @@ This section provides practical examples of using PepperPy Console in various sc
 A simple application with a welcome screen:
 
 ```python
-from pepperpy_console import PepperApp, PepperScreen, Static
+from pepperpy import PepperApp, PepperScreen, Static
 
 class WelcomeScreen(PepperScreen):
     async def compose(self):
@@ -27,7 +27,7 @@ if __name__ == "__main__":
 Example of building a CLI application with commands:
 
 ```python
-from pepperpy_console import PepperApp, Command, CommandGroup
+from pepperpy import PepperApp, Command, CommandGroup
 
 class CLIApp(PepperApp):
     def __init__(self):
@@ -67,7 +67,7 @@ if __name__ == "__main__":
 Example of creating a data table interface:
 
 ```python
-from pepperpy_console import (
+from pepperpy import (
     PepperApp,
     PepperScreen,
     PepperTable,
@@ -111,7 +111,7 @@ Creating and using a custom plugin:
 
 ```python
 from pathlib import Path
-from pepperpy_console import (
+from pepperpy import (
     PepperApp,
     Plugin,
     Command,
@@ -155,7 +155,7 @@ if __name__ == "__main__":
 Example of creating a form interface:
 
 ```python
-from pepperpy_console import (
+from pepperpy import (
     PepperApp,
     PepperScreen,
     PepperForm,
@@ -206,7 +206,7 @@ Example of an application with theme switching:
 
 ```python
 from pathlib import Path
-from pepperpy_console import (
+from pepperpy import (
     PepperApp,
     PepperScreen,
     Static,
@@ -255,7 +255,7 @@ if __name__ == "__main__":
 Example of using loading screens:
 
 ```python
-from pepperpy_console import (
+from pepperpy import (
     PepperApp,
     PepperScreen,
     LoadingScreen,
