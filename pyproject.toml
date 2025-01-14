@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pepperpy-console"
-version = "0.1.0"
+version = "0.3.1"
 description = "PepperPy console package"
 authors = ["Felipe Pimentel <fpimentel88@gmail.com>"]
 readme = "README.md"
