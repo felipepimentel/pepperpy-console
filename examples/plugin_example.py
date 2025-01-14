@@ -1,12 +1,32 @@
 """Example demonstrating plugin system usage."""
 
-from pathlib import Path
-from typing import Any
+from __future__ import annotations
 
+from pathlib import Path
+from typing import TYPE_CHECKING, Protocol
+
+from pepperpy import NotificationCenter, PepperApp, PepperScreen, PepperWidget
 from textual.containers import Container, Vertical
 from textual.widgets import Static
 
-from pepperpy_console import NotificationCenter, PepperApp, PepperScreen, PepperWidget
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+
+class PluginProtocol(Protocol):
+    """Protocol for plugin interface."""
+
+    name: str
+    version: str
+    description: str
+
+    async def initialize(self, app: PepperApp) -> None:
+        """Initialize the plugin."""
+        ...
+
+    async def cleanup(self) -> None:
+        """Clean up plugin resources."""
+        ...
 
 
 class CustomWidget(PepperWidget, Static):
@@ -36,9 +56,9 @@ class CustomWidget(PepperWidget, Static):
     }
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, **kwargs: str | float | bool | None) -> None:
         """Initialize the widget."""
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self.text = "Custom Plugin Widget"
 
     def render(self) -> str:
@@ -50,12 +70,13 @@ class CustomWidget(PepperWidget, Static):
 
         Args:
             text: New text to display
+
         """
         self.text = text
         self.refresh()
 
 
-class CustomPlugin:
+class CustomPlugin(PluginProtocol):
     """Example plugin implementation."""
 
     name = "custom"
@@ -64,13 +85,14 @@ class CustomPlugin:
 
     def __init__(self) -> None:
         """Initialize the plugin."""
-        self.widget = None
+        self.widget: CustomWidget | None = None
 
-    async def initialize(self, app: Any) -> None:
+    async def initialize(self, app: PepperApp) -> None:
         """Initialize the plugin.
 
         Args:
             app: Application instance
+
         """
         # Create widget
         self.widget = CustomWidget()
@@ -105,7 +127,7 @@ class MainScreen(PepperScreen):
     }
     """
 
-    def compose(self):
+    def compose(self) -> Iterator[Container]:
         """Compose the screen layout."""
         with Container():
             with Vertical(id="content"):
@@ -118,32 +140,30 @@ class PluginApp(PepperApp):
 
     TITLE = "PepperPy Plugin Example"
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the application."""
         super().__init__(screen_map={"main": MainScreen})
         self.install_screen(MainScreen(), name="main")
 
-    async def on_mount(self):
+    async def on_mount(self) -> None:
         """Handle application mount."""
         await super().on_mount()
 
         # Load built-in plugins
-        plugins_dir = Path(__file__).parent.parent / "pepperpy_console" / "plugins"
+        plugins_dir = Path(__file__).parent.parent / "pepperpy" / "plugins"
         await self.load_plugins(plugins_dir)
 
         # Register custom plugin
         custom_plugin = CustomPlugin()
-        self.plugins.plugins["custom"] = custom_plugin
+        await self.plugin_manager.register_plugin("custom", custom_plugin)
         await custom_plugin.initialize(self)
 
         # Show notification
         notifications = self.query_one(NotificationCenter)
-        await notifications.notify(
-            f"Loaded {len(self.plugins.plugins)} plugins", type="success"
-        )
+        await notifications.notify("Loaded plugin successfully", severity="success")
 
 
-def main():
+def main() -> None:
     """Run the plugin example."""
     app = PluginApp()
     app.run()

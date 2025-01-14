@@ -1,39 +1,41 @@
-"""Card widget for displaying content in a box."""
+"""Card widgets for displaying content."""
 
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Literal
 
 import structlog
 from textual.containers import Container
-from textual.widgets import Label, Static
+from textual.widgets import Static
 
-from .base import PepperWidget
+from .base import EventData, PepperWidget
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
 
 logger = structlog.get_logger(__name__)
 
 
 class Card(PepperWidget, Container):
-    """Card widget with title and content.
+    """Card widget for displaying content.
 
     Attributes:
         title (str): Card title
         content (str): Card content
         variant (str): Card style variant
+
     """
 
     DEFAULT_CSS = """
     Card {
         layout: vertical;
+        width: 100%;
+        height: auto;
         background: $surface;
         border: tall $primary;
-        padding: 1;
-        margin: 1;
-        min-width: 30;
-        max-width: 100;
-        height: auto;
-    }
-
-    Card:hover {
-        border: tall $accent;
+        padding: 0;
+        margin: 1 0;
     }
 
     Card.-primary {
@@ -52,154 +54,95 @@ class Card(PepperWidget, Container):
         border: tall $error;
     }
 
-    Card.-info {
-        border: tall $info;
-    }
-
-    Card #title {
-        background: $surface-darken-1;
-        color: $text;
-        text-style: bold;
+    Card > Header {
         width: 100%;
-        height: 3;
-        content-align: center middle;
+        height: 1;
+        background: $primary;
+        color: $text;
+        content-align: left middle;
         padding: 0 1;
     }
 
-    Card #content {
+    Card.-success > Header {
+        background: $success;
+    }
+
+    Card.-warning > Header {
+        background: $warning;
+    }
+
+    Card.-error > Header {
+        background: $error;
+    }
+
+    Card > Content {
+        width: 100%;
+        height: auto;
         background: $surface;
         color: $text;
-        width: 100%;
-        min-height: 3;
         padding: 1;
     }
     """
 
     def __init__(
         self,
-        *args: Any,
+        *args: tuple[()],
         title: str,
         content: str = "",
-        variant: str = "primary",
-        **kwargs: Any,
+        variant: Literal["primary", "success", "warning", "error"] = "primary",
+        **kwargs: dict[str, EventData],
     ) -> None:
         """Initialize the card.
 
         Args:
-            *args: Positional arguments
-            title: Card title
-            content: Card content
-            variant: Card style variant
-            **kwargs: Keyword arguments
+            title: The title to display in the header.
+            content: The content to display in the body.
+            variant: The style variant to use.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
         """
         super().__init__(*args, **kwargs)
         self.title = title
         self.content = content
         self.variant = variant
+        self.add_class(f"-{variant}")
 
-    def compose(self) -> None:
+    def compose(self) -> Generator[Static, None, None]:
         """Compose the card layout."""
-        self.add_class(f"-{self.variant}")
-        yield Label(self.title, id="title")
+        yield Static(self.title, id="header")
         yield Static(self.content, id="content")
-
-    def update_content(self, content: str) -> None:
-        """Update card content.
-
-        Args:
-            content: New content
-        """
-        self.content = content
-        content_widget = self.query_one("#content", Static)
-        content_widget.update(content)
-
-    def set_variant(self, variant: str) -> None:
-        """Set card style variant.
-
-        Args:
-            variant: New variant
-        """
-        self.remove_class(f"-{self.variant}")
-        self.variant = variant
-        self.add_class(f"-{self.variant}")
 
 
 class StatusCard(Card):
     """Card for displaying status information.
 
     Attributes:
-        status (str): Current status
+        title (str): Card title
+        status (str): Status message
         details (Optional[str]): Additional details
+
     """
 
     def __init__(
         self,
-        *args: Any,
+        *args: tuple[()],
         title: str,
         status: str,
-        details: Optional[str] = None,
-        **kwargs: Any,
+        details: str | None = None,
+        variant: Literal["primary", "success", "warning", "error"] = "primary",
+        **kwargs: dict[str, EventData],
     ) -> None:
         """Initialize the status card.
 
         Args:
-            *args: Positional arguments
-            title: Card title
-            status: Current status
-            details: Additional details
-            **kwargs: Keyword arguments
+            title: The title to display in the header.
+            status: The status message to display.
+            details: Optional additional details.
+            variant: The style variant to use.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
         """
-        content = self._format_content(status, details)
-        variant = self._get_variant(status)
+        content = f"{status}\n{details}" if details else status
         super().__init__(*args, title=title, content=content, variant=variant, **kwargs)
-        self.status = status
-        self.details = details
-
-    def _format_content(self, status: str, details: Optional[str] = None) -> str:
-        """Format card content.
-
-        Args:
-            status: Current status
-            details: Additional details
-
-        Returns:
-            str: Formatted content
-        """
-        content = f"Status: {status}"
-        if details:
-            content += f"\n{details}"
-        return content
-
-    def _get_variant(self, status: str) -> str:
-        """Get card variant based on status.
-
-        Args:
-            status: Current status
-
-        Returns:
-            str: Card variant
-        """
-        status = status.lower()
-        if "error" in status or "failed" in status:
-            return "error"
-        elif "warning" in status:
-            return "warning"
-        elif "success" in status or "completed" in status:
-            return "success"
-        elif "info" in status or "running" in status:
-            return "info"
-        else:
-            return "primary"
-
-    def update_status(self, status: str, details: Optional[str] = None) -> None:
-        """Update card status.
-
-        Args:
-            status: New status
-            details: New details
-        """
-        self.status = status
-        self.details = details
-        content = self._format_content(status, details)
-        self.update_content(content)
-        self.set_variant(self._get_variant(status))

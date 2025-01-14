@@ -1,8 +1,18 @@
-"""Theme management for PepperPy TUI."""
+"""Theme management for PepperPy Console."""
 
-from pathlib import Path
-from typing import Dict, Optional, Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
+import aiofiles
+import structlog
 import yaml
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+
+logger = structlog.get_logger(__name__)
 
 
 class Theme:
@@ -12,6 +22,7 @@ class Theme:
         name (str): Theme name
         colors (Dict[str, str]): Theme colors
         styles (Dict[str, str]): Theme styles
+
     """
 
     @classmethod
@@ -23,20 +34,41 @@ class Theme:
 
         Returns:
             Loaded theme instance
+
         """
-        with open(path) as f:
-            data = yaml.safe_load(f)
+        async with aiofiles.open(path) as f:
+            content = await f.read()
+            data = yaml.safe_load(content)
             if "metrics" in data:
                 del data["metrics"]  # Remove metrics as it's not part of the theme
+            return cls(**data)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Theme":
+        """Create a theme from a dictionary.
+
+        Args:
+            data: Theme data dictionary.
+
+        Returns:
+            Theme: Created theme instance.
+
+        """
         return cls(**data)
 
-    def __init__(self, name: str, colors: Dict[str, str], styles: Dict[str, Any]):
+    def __init__(
+        self,
+        name: str,
+        colors: dict[str, str],
+        styles: dict[str, Any],
+    ) -> None:
         """Initialize a theme.
 
         Args:
             name: Theme name
-            colors: Color definitions
-            styles: Style definitions
+            colors: Theme colors
+            styles: Theme styles
+
         """
         self.name = name
         self.colors = colors
@@ -46,53 +78,77 @@ class Theme:
 class ThemeManager:
     """Manager for PepperPy themes."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the theme manager."""
-        self.themes: Dict[str, Theme] = {}
-        self.current_theme: Optional[Theme] = None
+        self.themes: dict[str, Theme] = {}
+        self.current_theme: Theme | None = None
+
+    async def load_theme_file(self, path: Path) -> None:
+        """Load a theme from a YAML file.
+
+        Args:
+            path: Path to the theme file.
+
+        """
+        async with aiofiles.open(path) as f:
+            content = await f.read()
+            data = yaml.safe_load(content)
+            if "metrics" in data:
+                self.metrics = data["metrics"]
+            if "colors" in data:
+                self.colors = data["colors"]
 
     async def load_themes(self, themes_dir: Path) -> None:
-        """Load all themes from a directory.
+        """Load themes from a directory.
 
         Args:
-            themes_dir: Directory containing theme files
+            themes_dir: Directory containing theme files.
+
+        Raises:
+            ValueError: If theme directory not found.
+
         """
-        for theme_file in themes_dir.glob("*.yaml"):
-            theme = await Theme.load(theme_file)
-            self.themes[theme.name] = theme
+        if not themes_dir.exists():
+            error_msg = "Theme directory not found"
+            raise ValueError(error_msg)
 
-    async def load_theme(self, path: Path) -> Theme:
-        """Load a theme from a file.
+        yaml_dir = themes_dir / "yaml"
+        if not yaml_dir.exists():
+            msg = f"Theme directory not found: {yaml_dir}"
+            raise ValueError(msg)
 
-        Args:
-            path: Path to theme file
-
-        Returns:
-            Loaded theme instance
-        """
-        theme = await Theme.load(path)
-        self.themes[theme.name] = theme
-        return theme
+        for theme_file in yaml_dir.glob("*.yaml"):
+            await self.load_theme_file(theme_file)
 
     def set_theme(self, name: str) -> None:
         """Set the current theme.
 
         Args:
-            name: Theme name
+            name: Theme name.
+
+        Raises:
+            ValueError: If theme not found.
+
         """
         if name not in self.themes:
-            raise ValueError(f"Theme not found: {name}")
+            error_msg = f"Theme not found: {name}"
+            raise ValueError(error_msg)
         self.current_theme = self.themes[name]
 
     def get_theme(self, name: str) -> Theme:
         """Get a theme by name.
 
         Args:
-            name: Theme name
+            name: Theme name.
 
         Returns:
-            Theme instance
+            The requested theme.
+
+        Raises:
+            ValueError: If theme not found.
+
         """
         if name not in self.themes:
-            raise ValueError(f"Theme not found: {name}")
+            error_msg = f"Theme not found: {name}"
+            raise ValueError(error_msg)
         return self.themes[name]

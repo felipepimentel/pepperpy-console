@@ -1,15 +1,18 @@
-"""Dropdown widget for selecting options."""
+"""Dropdown widget for selecting from a list of options."""
 
-from typing import Any, Callable, List, Optional, Union
+from __future__ import annotations
 
-import structlog
+from typing import TYPE_CHECKING
+
 from textual.containers import Container
-from textual.message import Message
-from textual.widgets import Static
+from textual.widgets import Button, Input, Static
 
-from .base import PepperWidget
+from .base import EventData, PepperWidget
 
-logger = structlog.get_logger(__name__)
+if TYPE_CHECKING:
+    from collections.abc import Callable, Generator
+
+    from textual.message import Message
 
 
 class DropdownOption(PepperWidget, Static):
@@ -18,6 +21,8 @@ class DropdownOption(PepperWidget, Static):
     Attributes:
         label (str): Option label
         value (Any): Option value
+        is_selected (bool): Whether option is selected
+
     """
 
     DEFAULT_CSS = """
@@ -42,24 +47,27 @@ class DropdownOption(PepperWidget, Static):
 
     def __init__(
         self,
-        *args: Any,
+        *args: tuple[()],
         label: str,
-        value: Any = None,
+        value: str | float | bool | None = None,
         is_selected: bool = False,
-        **kwargs: Any,
+        **kwargs: dict[str, EventData],
     ) -> None:
         """Initialize dropdown option.
 
         Args:
-            *args: Positional arguments
-            label: Option label
-            value: Option value
-            is_selected: Whether option is selected
-            **kwargs: Keyword arguments
+            label: The label to display for this option.
+            value: The value associated with this option.
+            is_selected: Whether this option is selected.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
         """
         super().__init__(*args, **kwargs)
         self.label = label
         self.value = value if value is not None else label
+        self.is_selected = is_selected
+
         if is_selected:
             self.add_class("-selected")
 
@@ -68,19 +76,21 @@ class DropdownOption(PepperWidget, Static):
 
         Returns:
             str: Rendered content
+
         """
         return self.label
 
 
 class Dropdown(PepperWidget, Container):
-    """Dropdown widget for selecting options.
+    """Dropdown widget for selecting from a list of options.
 
     Attributes:
         options (List[DropdownOption]): Available options
         selected_option (Optional[DropdownOption]): Currently selected option
+        placeholder (str): Placeholder text when no option is selected
+        on_select (Optional[Callable]): Callback for when an option is selected
         is_open (bool): Whether dropdown is open
-        placeholder (str): Placeholder text
-        on_select (Optional[Callable[[Any], None]]): Selection callback
+
     """
 
     DEFAULT_CSS = """
@@ -90,86 +100,71 @@ class Dropdown(PepperWidget, Container):
         height: auto;
         background: $surface;
         border: tall $primary;
+        padding: 0;
         margin: 1 0;
     }
 
-    Dropdown #header {
+    #dropdown-container {
+        layout: horizontal;
+        height: 1;
         width: 100%;
-        height: 3;
-        background: $surface;
-        content-align: left middle;
+        padding: 0;
+        margin: 0;
+    }
+
+    #dropdown-input {
+        width: 90%;
+        height: 1;
+        border: none;
         padding: 0 1;
     }
 
-    Dropdown #header:hover {
-        background: $surface-lighten-1;
+    #dropdown-toggle {
+        width: 10%;
+        height: 1;
+        border: none;
+        padding: 0;
+        content-align: center middle;
     }
 
-    Dropdown #options {
+    #options {
+        layout: vertical;
         width: 100%;
+        height: auto;
         max-height: 10;
-        background: $surface;
-        border-top: tall $primary;
-        display: none;
         overflow-y: scroll;
-    }
-
-    Dropdown.-open #options {
-        display: block;
-    }
-
-    Dropdown #placeholder {
-        color: $text-muted;
+        border-top: tall $primary;
+        padding: 0;
+        margin: 0;
     }
     """
 
-    class OptionSelected(Message):
-        """Option selected message.
-
-        Attributes:
-            option (DropdownOption): Selected option
-        """
-
-        def __init__(self, option: "DropdownOption") -> None:
-            """Initialize option selected message.
-
-            Args:
-                option: Selected option
-            """
-            super().__init__()
-            self.option = option
-
     def __init__(
         self,
-        *args: Any,
-        options: List[Union[str, tuple[str, Any]]],
+        *args: tuple[()],
+        options: list[str | tuple[str, str | int | float | bool | None]],
         placeholder: str = "Select an option...",
-        on_select: Optional[Callable[[Any], None]] = None,
-        **kwargs: Any,
+        on_select: Callable[[str | int | float | bool | None], None] | None = None,
+        **kwargs: dict[str, EventData],
     ) -> None:
         """Initialize dropdown.
 
         Args:
-            *args: Positional arguments
-            options: List of options (strings or label-value tuples)
-            placeholder: Placeholder text
-            on_select: Optional selection callback
-            **kwargs: Keyword arguments
+            options: List of options to display. Each option can be a string or a tuple
+                of (label, value).
+            placeholder: Text to display when no option is selected.
+            on_select: Callback for when an option is selected.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
         """
         super().__init__(*args, **kwargs)
-        self.options: List[DropdownOption] = []
-        self.selected_option: Optional[DropdownOption] = None
-        self.is_open = False
+        self.options: list[DropdownOption] = []
+        self.selected_option: DropdownOption | None = None
         self.placeholder = placeholder
         self.on_select = on_select
-        self._setup_options(options)
+        self.is_open = False
 
-    def _setup_options(self, options: List[Union[str, tuple[str, Any]]]) -> None:
-        """Setup dropdown options.
-
-        Args:
-            options: List of options
-        """
         for option in options:
             if isinstance(option, tuple):
                 label, value = option
@@ -177,47 +172,52 @@ class Dropdown(PepperWidget, Container):
                 label = value = option
             self.options.append(DropdownOption(label=label, value=value))
 
-    def compose(self) -> None:
+    def compose(self) -> Generator[Container | DropdownOption, None, None]:
         """Compose the dropdown layout."""
-        with Static(id="header"):
-            if self.selected_option:
-                yield Static(self.selected_option.label)
-            else:
-                yield Static(self.placeholder, id="placeholder")
+        yield Container(
+            Input(
+                placeholder=self.placeholder,
+                id="dropdown-input",
+                value=self.selected_option.label if self.selected_option else "",
+            ),
+            Button("▼", id="dropdown-toggle"),
+            id="dropdown-container",
+        )
 
-        with Container(id="options"):
-            for option in self.options:
-                yield option
+        if self.is_open:
+            with Container(id="options"):
+                yield from self.options
 
     def toggle(self) -> None:
-        """Toggle dropdown state."""
+        """Toggle dropdown open/closed."""
         self.is_open = not self.is_open
-        if self.is_open:
-            self.add_class("-open")
-        else:
-            self.remove_class("-open")
+        self.refresh()
 
     def select_option(self, option: DropdownOption) -> None:
         """Select a dropdown option.
 
         Args:
             option: Option to select
+
         """
         if self.selected_option:
             self.selected_option.remove_class("-selected")
         option.add_class("-selected")
         self.selected_option = option
         self.is_open = False
-        self.remove_class("-open")
         self.refresh()
 
-        self.emit_no_wait("option_selected", option)
         if self.on_select:
             self.on_select(option.value)
 
-    def on_click(self, event: Static.Clicked) -> None:
-        """Handle click events."""
-        if event.target.id == "header":
+    async def on_button_click(self, event: Message) -> None:
+        """Handle button click events."""
+        sender = getattr(event, "sender", None)
+        if sender and getattr(sender, "id", None) == "dropdown-toggle":
             self.toggle()
-        elif isinstance(event.target, DropdownOption):
-            self.select_option(event.target)
+
+    async def on_static_click(self, event: Message) -> None:
+        """Handle option click events."""
+        sender = getattr(event, "sender", None)
+        if sender and isinstance(sender, DropdownOption):
+            self.select_option(sender)

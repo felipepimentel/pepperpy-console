@@ -1,120 +1,102 @@
-"""Navigation components for TUI applications."""
+"""Navigation widget for PepperPy Console."""
 
-from dataclasses import dataclass
-from typing import Any, Callable, List, Optional
+from __future__ import annotations
 
-import structlog
+from typing import TYPE_CHECKING, Any
+
 from textual.widgets import Tree
-from textual.widgets.tree import TreeNode, NodeSelected
 
-from .base import PepperWidget
+from .base import EventData, PepperWidget
 
-logger = structlog.get_logger(__name__)
-
-
-@dataclass
-class MenuItem:
-    """Menu item configuration.
-
-    Attributes:
-        label (str): Display label
-        action (Optional[Callable]): Action to execute
-        children (List[MenuItem]): Submenu items
-        icon (Optional[str]): Optional icon
-    """
-
-    label: str
-    action: Optional[Callable] = None
-    children: List["MenuItem"] = None
-    icon: Optional[str] = None
-
-    def __post_init__(self) -> None:
-        """Initialize default values."""
-        if self.children is None:
-            self.children = []
+if TYPE_CHECKING:
+    from textual.app import ComposeResult
+    from textual.widgets.tree import TreeNode
 
 
-class Navigation(PepperWidget, Tree):
-    """Navigation menu with hierarchical structure.
+class Navigation(PepperWidget):
+    """Navigation widget for PepperPy Console.
 
     Attributes:
-        items (List[MenuItem]): Menu items
-        current_path (List[str]): Current navigation path
+        _tree: The navigation tree.
+        current_path: The current path in the tree.
+
     """
 
-    def __init__(self, *args: Any, items: List[MenuItem], **kwargs: Any) -> None:
+    def __init__(self, *args: tuple[()], **kwargs: dict[str, EventData]) -> None:
         """Initialize the navigation widget.
 
         Args:
-            *args: Positional arguments
-            items: Menu items
-            **kwargs: Keyword arguments
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
         """
         super().__init__(*args, **kwargs)
-        self.items = items
-        self.current_path: List[str] = []
+        self._tree: Tree[Any] = Tree("Navigation")
+        self.current_path: list[str] = []
 
-    def compose(self) -> None:
-        """Compose the navigation layout."""
-        self.root.expand()
-        for item in self.items:
-            self._add_menu_item(self.root, item)
+    def compose(self) -> ComposeResult:
+        """Compose the navigation widget.
 
-    def _add_menu_item(self, parent: TreeNode, item: MenuItem) -> None:
-        """Add a menu item to the tree.
+        Returns:
+            The compose result.
+
+        """
+        yield self._tree
+
+    def find_node_by_path(self, path: str) -> TreeNode[Any] | None:
+        """Find a node in the tree by its path.
 
         Args:
-            parent: Parent tree node
-            item: Menu item to add
+            path: The path to find.
+
+        Returns:
+            The node if found, None otherwise.
+
         """
-        node = parent.add(item.label, data={"action": item.action}, expand=True)
-        if item.icon:
-            node.set_icon(item.icon)
+        if not self._tree.root:
+            return None
 
-        for child in item.children:
-            self._add_menu_item(node, child)
+        current = self._tree.root
+        parts = path.split("/")
 
-    async def on_tree_node_selected(self, event: NodeSelected) -> None:
-        """Handle node selection events.
+        for part in parts:
+            if not part:
+                continue
 
-        Args:
-            event: Node selection event
-        """
-        node = event.node
-        action = node.data.get("action")
+            found = False
+            for child in current.children:
+                if child.label == part:
+                    current = child
+                    found = True
+                    break
 
-        if action:
-            try:
-                if callable(action):
-                    await action()
-                await self.events.emit(
-                    "action",
-                    {
-                        "path": self.current_path + [node.label],
-                        "action": action.__name__
-                        if hasattr(action, "__name__")
-                        else str(action),
-                    },
-                )
-            except Exception as e:
-                logger.error(f"Error executing action: {e}")
-                await self.events.emit("error", str(e))
+            if not found:
+                return None
 
-        self.current_path = self._get_path(node)
-        await self.events.emit("path_changed", self.current_path)
+        return current
 
-    def _get_path(self, node: TreeNode) -> List[str]:
+    def _get_path(self, node: TreeNode[Any]) -> list[str]:
         """Get the path to a node.
 
         Args:
-            node: Tree node
+            node: The node to get the path for.
 
         Returns:
-            List[str]: Path components
+            The path to the node.
+
         """
-        path = []
+        path: list[str] = []
         current = node
         while current.parent is not None:
-            path.insert(0, current.label)
+            path.insert(0, str(current.label))
             current = current.parent
         return path
+
+    def on_tree_node_selected(self, event: Tree.NodeSelected[Any]) -> None:
+        """Handle tree node selection.
+
+        Args:
+            event: The node selected event.
+
+        """
+        self.current_path = self._get_path(event.node)

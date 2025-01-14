@@ -1,93 +1,71 @@
-"""Tabs widget for content organization."""
+"""Tab widget implementation."""
 
-from typing import Any, Dict, List, Optional
+from __future__ import annotations
 
-import structlog
-from textual.containers import Container, Horizontal
+from typing import TYPE_CHECKING
+
+from textual.containers import Container
+from textual.message import Message
 from textual.widgets import Static
 
-from .base import PepperWidget
+from pepperpy_console.tui.widgets.base import PepperWidget
 
-logger = structlog.get_logger(__name__)
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 
 class TabButton(PepperWidget, Static):
-    """Tab button widget.
-
-    Attributes:
-        label (str): Tab label
-        tab_id (str): Tab identifier
-    """
+    """Tab button widget."""
 
     DEFAULT_CSS = """
     TabButton {
-        width: auto;
-        min-width: 16;
-        height: 3;
-        color: $text-muted;
-        background: $surface-darken-1;
-        border-bottom: tall $surface-darken-1;
-        content-align: center middle;
-        padding: 0 2;
+        padding: 1;
+        margin: 0;
+        border: none;
+        text-align: center;
+        min-width: 10;
     }
 
     TabButton:hover {
-        color: $text;
-        background: $surface;
+        background: $accent;
     }
 
     TabButton.-active {
-        color: $text;
-        background: $surface;
-        border-bottom: tall $primary;
+        background: $accent;
     }
     """
 
-    def __init__(
-        self,
-        *args: Any,
-        label: str,
-        tab_id: str,
-        is_active: bool = False,
-        **kwargs: Any,
-    ) -> None:
-        """Initialize tab button.
+    def __init__(self, label: str, tab_id: str) -> None:
+        """Initialize the tab button.
 
         Args:
-            *args: Positional arguments
-            label: Tab label
-            tab_id: Tab identifier
-            is_active: Whether tab is active
-            **kwargs: Keyword arguments
+            label: Label to display on the button.
+            tab_id: ID of the tab this button controls.
+
         """
-        super().__init__(*args, **kwargs)
+        super().__init__()
         self.label = label
         self.tab_id = tab_id
-        if is_active:
-            self.add_class("-active")
 
-    def render(self) -> str:
-        """Render the button.
+    def compose(self) -> Generator[Static, None, None]:
+        """Compose the tab button.
 
         Returns:
-            str: Rendered content
+            Generator[Static, None, None]: The composed tab button.
+
         """
-        return self.label
+        yield Static(self.label)
 
 
 class TabContent(PepperWidget, Container):
-    """Tab content widget.
-
-    Attributes:
-        tab_id (str): Tab identifier
-        content (Container): Content container
-    """
+    """Tab content widget."""
 
     DEFAULT_CSS = """
     TabContent {
-        width: 100%;
-        height: auto;
         display: none;
+        padding: 1;
+        border: none;
+        height: auto;
     }
 
     TabContent.-active {
@@ -95,141 +73,126 @@ class TabContent(PepperWidget, Container):
     }
     """
 
-    def __init__(
-        self,
-        *args: Any,
-        tab_id: str,
-        content: Container,
-        is_active: bool = False,
-        **kwargs: Any,
-    ) -> None:
-        """Initialize tab content.
+    def __init__(self, tab_id: str) -> None:
+        """Initialize the tab content.
 
         Args:
-            *args: Positional arguments
-            tab_id: Tab identifier
-            content: Content container
-            is_active: Whether tab is active
-            **kwargs: Keyword arguments
-        """
-        super().__init__(*args, **kwargs)
-        self.tab_id = tab_id
-        self.content = content
-        if is_active:
-            self.add_class("-active")
+            tab_id: ID of the tab this content belongs to.
 
-    def compose(self) -> None:
-        """Compose the tab content."""
-        yield self.content
+        """
+        super().__init__()
+        self.tab_id = tab_id
+
+
+class TabChanged(Message, bubble=True):
+    """Message sent when a tab is changed."""
+
+    def __init__(self, tab_id: str) -> None:
+        """Initialize the tab changed message.
+
+        Args:
+            tab_id: ID of the tab that was changed to.
+
+        """
+        super().__init__()
+        self.tab_id = tab_id
 
 
 class Tabs(PepperWidget, Container):
-    """Tabs widget for organizing content.
-
-    Attributes:
-        tabs (Dict[str, TabContent]): Tab contents by ID
-        active_tab (Optional[str]): Currently active tab ID
-    """
+    """Tab widget."""
 
     DEFAULT_CSS = """
     Tabs {
-        layout: vertical;
-        width: 100%;
+        layout: grid;
+        grid-size: 1;
+        grid-rows: auto 1fr;
         height: auto;
-        background: $surface;
-        border: tall $primary;
-        padding: 0;
-        margin: 1 0;
     }
 
-    Tabs #tab-bar {
-        width: 100%;
-        height: 3;
-        background: $surface-darken-1;
+    Tabs > .tabs {
+        layout: horizontal;
+        height: auto;
+        border-bottom: solid $accent;
     }
 
-    Tabs #tab-content {
-        width: 100%;
+    Tabs > .content {
         height: auto;
-        padding: 1;
     }
     """
 
-    def __init__(
+    def __init__(self) -> None:
+        """Initialize the tabs widget."""
+        super().__init__()
+        self.buttons: list[TabButton] = []
+        self.contents: list[TabContent] = []
+        self._active_tab: str | None = None
+
+    def compose(
         self,
-        *args: Any,
-        tabs: List[tuple[str, str, Container]],
-        active_tab: Optional[str] = None,
-        **kwargs: Any,
-    ) -> None:
-        """Initialize tabs.
+    ) -> Generator[Container | TabButton | TabContent, None, None]:
+        """Compose the tabs widget.
+
+        Returns:
+            Generator[Container | TabButton | TabContent, None, None]:
+                The composed tabs widget.
+
+        """
+        with Container(classes="tabs"):
+            yield from self.buttons
+        with Container(classes="content"):
+            yield from self.contents
+
+    def add_tab(self, label: str, tab_id: str, content: TabContent) -> None:
+        """Add a tab to the widget.
 
         Args:
-            *args: Positional arguments
-            tabs: List of (id, label, content) tuples
-            active_tab: Initially active tab ID
-            **kwargs: Keyword arguments
-        """
-        super().__init__(*args, **kwargs)
-        self.tabs: Dict[str, TabContent] = {}
-        self.active_tab = active_tab or (tabs[0][0] if tabs else None)
-        self._setup_tabs(tabs)
+            label: Label to display on the tab button.
+            tab_id: ID of the tab.
+            content: Content to display in the tab.
 
-    def _setup_tabs(self, tabs: List[tuple[str, str, Container]]) -> None:
-        """Setup tab contents.
+        """
+        button = TabButton(label, tab_id)
+        button.id = f"tab-{tab_id}"
+        content.id = f"content-{tab_id}"
+        self.buttons.append(button)
+        self.contents.append(content)
+
+        if not self._active_tab:
+            self._active_tab = tab_id
+            button.add_class("-active")
+            content.add_class("-active")
+
+    def on_click(self, event: Message) -> None:
+        """Handle click events.
 
         Args:
-            tabs: List of (id, label, content) tuples
+            event: The click event.
+
         """
-        for tab_id, label, content in tabs:
-            is_active = tab_id == self.active_tab
-            self.tabs[tab_id] = TabContent(
-                tab_id=tab_id,
-                content=content,
-                is_active=is_active,
-            )
+        if isinstance(event._sender, TabButton):
+            self._set_active_tab(event._sender.tab_id)
 
-    def compose(self) -> None:
-        """Compose the tabs layout."""
-        with Horizontal(id="tab-bar"):
-            for tab_id, tab in self.tabs.items():
-                yield TabButton(
-                    label=tab.content.label
-                    if hasattr(tab.content, "label")
-                    else tab_id,
-                    tab_id=tab_id,
-                    is_active=tab_id == self.active_tab,
-                )
-
-        with Container(id="tab-content"):
-            for tab in self.tabs.values():
-                yield tab
-
-    def switch_tab(self, tab_id: str) -> None:
-        """Switch to a different tab.
+    def _set_active_tab(self, tab_id: str) -> None:
+        """Set the active tab.
 
         Args:
-            tab_id: Tab to switch to
+            tab_id: ID of the tab to set as active.
+
         """
-        if tab_id not in self.tabs:
+        if tab_id == self._active_tab:
             return
 
-        # Update active states
-        for button in self.query(TabButton):
+        for button in self.buttons:
             if button.tab_id == tab_id:
                 button.add_class("-active")
             else:
                 button.remove_class("-active")
 
-        for content in self.query(TabContent):
+        for content in self.contents:
             if content.tab_id == tab_id:
                 content.add_class("-active")
             else:
                 content.remove_class("-active")
 
-        self.active_tab = tab_id
-
-    def on_tab_button_click(self, event: TabButton.Clicked) -> None:
-        """Handle tab button clicks."""
-        button = event.button
-        self.switch_tab(button.tab_id)
+        self._active_tab = tab_id
+        self.post_message(TabChanged(tab_id))

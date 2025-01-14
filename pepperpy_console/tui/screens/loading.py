@@ -1,30 +1,36 @@
 """Loading screen for PepperPy TUI."""
 
-from typing import AsyncGenerator
+from __future__ import annotations
 
-from textual.widget import Widget
+from typing import TYPE_CHECKING
+
 from textual.widgets import Label, LoadingIndicator
 
 from .base import PepperScreen
+
+if TYPE_CHECKING:
+    from textual.app import ComposeResult
 
 
 class LoadingScreen(PepperScreen):
     """Loading screen with customizable message."""
 
-    def __init__(self, message: str = "Loading..."):
+    def __init__(self, message: str = "Loading...") -> None:
         """Initialize the loading screen.
 
         Args:
-            message: Loading message to display
+            message: The loading message to display.
+
         """
         super().__init__()
         self.message = message
 
-    async def compose(self) -> AsyncGenerator[Widget, None]:
+    def compose(self) -> ComposeResult:
         """Compose the loading screen layout.
 
-        Yields:
-            Loading screen widgets
+        Returns:
+            The compose result.
+
         """
         yield Label(self.message)
-        yield LoadingIndicator() 
+        yield LoadingIndicator()

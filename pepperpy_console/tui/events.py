@@ -1,10 +1,29 @@
 """Event system for TUI applications."""
 
-from typing import Any, Dict, List, Optional, Callable, Awaitable
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Protocol
 
 import structlog
 
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+
 logger = structlog.get_logger(__name__)
+
+
+class EventData(Protocol):
+    """Protocol for event data."""
+
+    def __str__(self) -> str:
+        """Convert the event data to a string.
+
+        Returns:
+            The string representation of the event data.
+
+        """
+        ...
 
 
 class EventManager:
@@ -12,44 +31,50 @@ class EventManager:
 
     Attributes:
         listeners (Dict[str, List[Callable[..., Awaitable[None]]]]): Event listeners
+
     """
 
     def __init__(self) -> None:
         """Initialize the event manager."""
-        self.listeners: Dict[str, List[Callable[..., Awaitable[None]]]] = {}
+        self.listeners: dict[str, list[Callable[..., Awaitable[None]]]] = {}
 
-    def on(self, event: str, handler: Callable[..., Awaitable[None]]) -> None:
+    def register(self, event: str, handler: Callable[..., Awaitable[None]]) -> None:
         """Register an event handler.
 
         Args:
-            event: Event name
-            handler: Event handler
+            event: Event name.
+            handler: Event handler function.
+
         """
         if event not in self.listeners:
             self.listeners[event] = []
         self.listeners[event].append(handler)
-        logger.debug(f"Registered event handler for {event}")
+        logger.debug("Registered event handler", event=event)
 
-    def off(self, event: str, handler: Optional[Callable[..., Awaitable[None]]] = None) -> None:
+    def off(
+        self,
+        event: str,
+        handler: Callable[..., Awaitable[None]] | None = None,
+    ) -> None:
         """Remove an event handler.
 
         Args:
-            event: Event name
-            handler: Optional event handler to remove
-        """
-        if event in self.listeners:
-            if handler:
-                self.listeners[event].remove(handler)
-            else:
-                self.listeners[event] = []
-            logger.debug(f"Removed event handler for {event}")
+            event: Event name.
+            handler: Event handler to remove.
 
-    async def emit(self, event: str, data: Any = None) -> None:
+        """
+        if handler is None:
+            self.listeners[event] = []
+        else:
+            self.listeners[event].remove(handler)
+
+    async def emit(self, event: str, data: EventData | None = None) -> None:
         """Emit an event.
 
         Args:
-            event: Event name
-            data: Optional event data
+            event: Event name.
+            data: Event data.
+
         """
         if event in self.listeners:
             for handler in self.listeners[event]:
@@ -58,8 +83,8 @@ class EventManager:
                         await handler(data)
                     else:
                         await handler()
-                except Exception as e:
-                    logger.error(f"Error handling event {event}: {e}")
+                except Exception:
+                    logger.exception("Error handling event", event=event)
 
 
-event_manager = EventManager() 
+event_manager = EventManager()

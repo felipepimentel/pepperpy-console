@@ -8,21 +8,20 @@ packages = [{ include = "pepperpy_console" }]
 
 [tool.poetry.dependencies]
 python = "^3.12"
-rich = "^13.7.0"
+rich = "^13.9.4"
 pepperpy-core = "*"
 textual = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.0.0"
+pytest = "^8.3.4"
 pytest-asyncio = "^0.25.2"
-pytest-cov = "^6.0.0"
-ruff = "^0.8.4"
-mypy = "^1.9.0"
-bandit = "^1.7.8"
-coverage = "^7.6.10"
-types-pyyaml = "^6.0.12.20241230"
+ruff = "^0.9.1"
+mypy = "^1.14.1"
+bandit = "^1.8.2"
 black = "^24.10.0"
-python-semantic-release = "^9.15.2"
+python-semantic-release = "^9.16.1"
+pre-commit = "^4.0.1"
+isort = "^5.13.2"
 
 [build-system]
 requires = ["poetry-core"]
@@ -33,7 +32,81 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
-asyncio_default_fixture_loop_scope = "function"
-markers = [
-    "asyncio: mark test as requiring asyncio event loop",
-]
+markers = ["asyncio: mark test as requiring asyncio event loop"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+ignore_missing_imports = true
+mypy_path = "."
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+check_untyped_defs = false
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+line_length = 88
+known_first_party = ["pepperpy_console"]
+known_third_party = ["rich", "textual", "structlog"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+default_section = "THIRDPARTY"
+
+[tool.semantic_release]
+version_variables = ["pyproject.toml:version"]
+commit_author = "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+commit_parser = "angular"
+branch = "main"
+upload_to_pypi = true
+build_command = "poetry build"
+repository = "pepperpy-console"
+repository_owner = "felipepimentel"
+
+[tool.semantic_release.remote]
+type = "github"
+token = "${GH_TOKEN}"
+
+[tool.semantic_release.publish]
+dist_glob_patterns = ["dist/*"]
+upload_to_vcs_release = true
+upload_to_repository = true
+
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease_token = "rc"
+prerelease = false
+
+[tool.semantic_release.publish.pypi]
+build = true
+remove_dist = true
+token = "${POETRY_PYPI_TOKEN_PYPI}"
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "N", "W", "B", "A", "C4", "PT", "RET", "SIM", "TCH"]
+ignore = ["A005"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["D", "S101"]
+"examples/**/*.py" = ["D"]

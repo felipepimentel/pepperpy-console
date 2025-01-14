@@ -1,54 +1,25 @@
-"""Widget components for PepperPy Console."""
+"""Widget components for TUI applications."""
 
-from .accordion import Accordion, AccordionItem
+from __future__ import annotations
+
 from .base import PepperWidget
-from .breadcrumbs import BreadcrumbItem, Breadcrumbs
-from .card import Card, StatusCard
-from .dialog import AlertDialog, ConfirmDialog, Dialog
-from .dropdown import Dropdown, DropdownOption
-from .form import FormField, PepperForm
-from .input import ModelInput, ValidatedInput
-from .navigation import MenuItem, Navigation
-from .notification import Notification, NotificationCenter
-from .progress import Progress, SpinnerProgress
-from .search_bar import FilterableList, SearchBar
-from .table import Column, PepperTable
-from .tabs import TabButton, TabContent, Tabs
-from .tooltip import Tooltip, TooltipContainer
-from .tree_view import TreeNode, TreeView
+from .breadcrumbs import Breadcrumbs
+from .dialog import Dialog
+from .form import Form
+from .input import ValidatedInput
+from .navigation import Navigation
+from .notification import Notification
+from .progress import Progress
+from .tooltip import Tooltip
 
 __all__ = [
-    "PepperWidget",
-    "AlertDialog",
-    "ConfirmDialog",
+    "Breadcrumbs",
     "Dialog",
-    "FormField",
-    "PepperForm",
-    "ModelInput",
-    "ValidatedInput",
-    "MenuItem",
+    "Form",
     "Navigation",
     "Notification",
-    "NotificationCenter",
+    "PepperWidget",
     "Progress",
-    "SpinnerProgress",
-    "Column",
-    "PepperTable",
-    "Card",
-    "StatusCard",
-    "Breadcrumbs",
-    "BreadcrumbItem",
-    "TabButton",
-    "TabContent",
-    "Tabs",
-    "Accordion",
-    "AccordionItem",
     "Tooltip",
-    "TooltipContainer",
-    "TreeView",
-    "TreeNode",
-    "SearchBar",
-    "FilterableList",
-    "Dropdown",
-    "DropdownOption",
+    "ValidatedInput",
 ]

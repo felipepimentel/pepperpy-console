@@ -1,12 +1,19 @@
-"""Accordion widget for expandable content."""
+"""Accordion widget for collapsible content."""
 
-from typing import Any, List
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import structlog
 from textual.containers import Container
+from textual.message import Message
 from textual.widgets import Static
 
-from .base import PepperWidget
+from .base import EventData, PepperWidget
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
 
 logger = structlog.get_logger(__name__)
 
@@ -18,7 +25,21 @@ class AccordionItem(PepperWidget, Container):
         title (str): Item title
         content (Container): Item content
         is_expanded (bool): Whether item is expanded
+
     """
+
+    class Clicked(Message):
+        """Message sent when an accordion item is clicked."""
+
+        def __init__(self, sender: "AccordionItem") -> None:
+            """Initialize clicked message.
+
+            Args:
+                sender: The accordion item that was clicked.
+
+            """
+            super().__init__()
+            self.sender = sender
 
     DEFAULT_CSS = """
     AccordionItem {
@@ -26,97 +47,90 @@ class AccordionItem(PepperWidget, Container):
         width: 100%;
         height: auto;
         background: $surface;
-        border-bottom: tall $surface-darken-1;
+        border: tall $primary;
+        padding: 0;
+        margin: 1 0;
     }
 
-    AccordionItem:hover {
-        background: $surface-lighten-1;
-    }
-
-    AccordionItem #header {
+    AccordionItem > Header {
         width: 100%;
-        height: 3;
-        background: $surface;
+        height: 1;
+        background: $primary;
+        color: $text;
         content-align: left middle;
         padding: 0 1;
     }
 
-    AccordionItem #header:hover {
-        background: $surface-lighten-1;
-    }
-
-    AccordionItem #content {
+    AccordionItem > Content {
         width: 100%;
         height: auto;
-        display: none;
+        background: $surface;
+        color: $text;
         padding: 1;
-        background: $surface-darken-1;
+        display: none;
     }
 
-    AccordionItem.-expanded #header {
-        background: $surface-lighten-1;
-        border-left: thick $primary;
-    }
-
-    AccordionItem.-expanded #content {
+    AccordionItem.-expanded > Content {
         display: block;
     }
     """
 
     def __init__(
         self,
-        *args: Any,
+        *args: tuple[()],
         title: str,
         content: Container,
         is_expanded: bool = False,
-        **kwargs: Any,
+        **kwargs: dict[str, EventData],
     ) -> None:
         """Initialize accordion item.
 
         Args:
-            *args: Positional arguments
-            title: Item title
-            content: Item content
-            is_expanded: Whether item is expanded
-            **kwargs: Keyword arguments
+            title: The title to display in the header.
+            content: The content to display when expanded.
+            is_expanded: Whether this item starts expanded.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
         """
         super().__init__(*args, **kwargs)
         self.title = title
         self.content = content
         self.is_expanded = is_expanded
+
         if is_expanded:
             self.add_class("-expanded")
-
-    def compose(self) -> None:
-        """Compose the item layout."""
-        yield Static(
-            f"▼ {self.title}" if self.is_expanded else f"▶ {self.title}", id="header"
-        )
-        with Container(id="content"):
-            yield self.content
 
     def toggle(self) -> None:
         """Toggle item expansion."""
         self.is_expanded = not self.is_expanded
-        header = self.query_one("#header", Static)
-        header.update(f"▼ {self.title}" if self.is_expanded else f"▶ {self.title}")
         if self.is_expanded:
             self.add_class("-expanded")
         else:
             self.remove_class("-expanded")
 
-    def on_click(self) -> None:
+    def compose(self) -> Generator[Static | Container, None, None]:
+        """Compose the item layout."""
+        yield Static(
+            f"▼ {self.title}" if self.is_expanded else f"▶ {self.title}",
+            id="header",
+        )
+        with Container(id="content"):
+            yield self.content
+
+    async def on_click(self) -> None:
         """Handle click events."""
         self.toggle()
-        self.emit_no_wait("accordion_item_clicked", self)
+        self.post_message(self.Clicked(self))
 
 
 class Accordion(PepperWidget, Container):
-    """Accordion widget for expandable content.
+    """Accordion widget for collapsible content.
 
     Attributes:
         items (List[AccordionItem]): Accordion items
-        allow_multiple (bool): Allow multiple items expanded
+        allow_multiple (bool): Whether multiple items can be expanded
+
     """
 
     DEFAULT_CSS = """
@@ -133,44 +147,42 @@ class Accordion(PepperWidget, Container):
 
     def __init__(
         self,
-        *args: Any,
-        items: List[tuple[str, Container]],
+        *args: tuple[()],
+        items: list[tuple[str, Container]],
         allow_multiple: bool = True,
-        **kwargs: Any,
+        **kwargs: dict[str, EventData],
     ) -> None:
         """Initialize accordion.
 
         Args:
-            *args: Positional arguments
-            items: List of (title, content) tuples
-            allow_multiple: Allow multiple items expanded
-            **kwargs: Keyword arguments
+            items: List of (title, content) tuples.
+            allow_multiple: Whether multiple items can be expanded.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
         """
         super().__init__(*args, **kwargs)
+        self.items = [
+            AccordionItem(title=title, content=content) for title, content in items
+        ]
         self.allow_multiple = allow_multiple
-        self.items: List[AccordionItem] = []
-        self._setup_items(items)
 
-    def _setup_items(self, items: List[tuple[str, Container]]) -> None:
-        """Setup accordion items.
-
-        Args:
-            items: List of (title, content) tuples
-        """
-        for title, content in items:
-            item = AccordionItem(title=title, content=content)
-            self.items.append(item)
-
-    def compose(self) -> None:
+    def compose(self) -> Generator[AccordionItem, None, None]:
         """Compose the accordion layout."""
-        for item in self.items:
-            yield item
+        yield from self.items
 
-    def on_accordion_item_clicked(self, event: Any) -> None:
+    async def on_accordion_item_clicked(self, event: AccordionItem.Clicked) -> None:
         """Handle item clicks."""
         clicked_item = event.sender
         if not self.allow_multiple:
-            # Collapse other items
             for item in self.items:
                 if item != clicked_item and item.is_expanded:
                     item.toggle()
+
+        await self.emit_event(
+            "item_toggled",
+            {
+                "title": clicked_item.title,
+                "expanded": clicked_item.is_expanded,
+            },
+        )

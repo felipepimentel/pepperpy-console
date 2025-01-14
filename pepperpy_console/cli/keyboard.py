@@ -1,136 +1,127 @@
 """Keyboard management for CLI applications."""
 
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Protocol
 
 import structlog
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Coroutine
+
 
 logger = structlog.get_logger(__name__)
 
 
-@dataclass
+class KeyBindingProtocol(Protocol):
+    """Protocol for key binding execution."""
+
+    async def execute(
+        self,
+        *args: str | float | bool | None,
+        **kwargs: str | float | bool | None,
+    ) -> str | int | float | bool | None:
+        """Execute the key binding with arguments."""
+        ...
+
+
 class KeyBinding:
-    """Keyboard binding definition.
+    """Key binding class for PepperPy CLI.
 
     Attributes:
-        key (str): Key combination
-        description (str): Binding description
-        callback (Callable): Callback function
-        group (Optional[str]): Binding group name
+        key: The key combination that triggers this binding
+        callback: The function to call when the key is pressed
+        description: A description of what the binding does
+
     """
 
-    key: str
-    description: str = ""
-    callback: Optional[Callable] = None
-    group: Optional[str] = None
-
-    async def execute(self, *args: Any, **kwargs: Any) -> Any:
-        """Execute the binding callback.
+    def __init__(
+        self,
+        key: str,
+        callback: Callable[..., Coroutine[None, None, str | int | float | bool | None]],
+        description: str = "",
+    ) -> None:
+        """Initialize a key binding.
 
         Args:
-            *args: Positional arguments
-            **kwargs: Keyword arguments
+            key: The key combination that triggers this binding
+            callback: The function to call when the key is pressed
+            description: A description of what the binding does
+
+        """
+        self.key = key
+        self.callback = callback
+        self.description = description
+
+    async def execute(
+        self,
+        *args: str | float | bool | None,
+        **kwargs: str | float | bool | None,
+    ) -> str | int | float | bool | None:
+        """Execute the key binding with arguments.
+
+        Args:
+            *args: Positional arguments for the callback
+            **kwargs: Keyword arguments for the callback
 
         Returns:
-            Any: Callback result
+            The result of executing the callback
+
         """
-        if self.callback:
-            return await self.callback(*args, **kwargs)
-        return None
+        return await self.callback(*args, **kwargs)
 
 
-@dataclass
-class KeyBindingGroup:
-    """Group of related key bindings.
-
-    Attributes:
-        name (str): Group name
-        description (str): Group description
-        bindings (List[KeyBinding]): Bindings in the group
-    """
-
-    name: str
-    description: str = ""
-    bindings: List[KeyBinding] = field(default_factory=list)
-
-    def add_binding(self, binding: KeyBinding) -> None:
-        """Add a binding to the group.
-
-        Args:
-            binding: Binding to add
-        """
-        binding.group = self.name
-        self.bindings.append(binding)
-
-
-class KeyboardManager:
-    """Manager for keyboard bindings and groups.
-
-    Attributes:
-        bindings (Dict[str, KeyBinding]): Registered bindings
-        groups (Dict[str, KeyBindingGroup]): Binding groups
-    """
+class KeyBindingManager:
+    """Manager for keyboard bindings."""
 
     def __init__(self) -> None:
-        """Initialize the keyboard manager."""
-        self.bindings: Dict[str, KeyBinding] = {}
-        self.groups: Dict[str, KeyBindingGroup] = {}
+        """Initialize the key binding manager."""
+        self.bindings: dict[str, KeyBinding] = {}
 
-    def register_binding(self, binding: KeyBinding) -> None:
-        """Register a key binding.
+    def add_binding(self, binding: KeyBinding) -> None:
+        """Add a key binding.
 
         Args:
-            binding: Binding to register
+            binding: The key binding to add
+
         """
         self.bindings[binding.key] = binding
-        if binding.group and binding.group not in self.groups:
-            self.groups[binding.group] = KeyBindingGroup(name=binding.group)
-            self.groups[binding.group].add_binding(binding)
 
-    def register_group(self, group: KeyBindingGroup) -> None:
-        """Register a binding group.
+    def get_binding(self, key: str) -> KeyBinding | None:
+        """Get a key binding by key.
 
         Args:
-            group: Group to register
-        """
-        self.groups[group.name] = group
-        for binding in group.bindings:
-            self.bindings[binding.key] = binding
-
-    def get_binding(self, key: str) -> Optional[KeyBinding]:
-        """Get a binding by key.
-
-        Args:
-            key: Key combination
+            key: The key combination
 
         Returns:
-            Optional[KeyBinding]: Binding if found
+            The key binding if found, None otherwise
+
         """
         return self.bindings.get(key)
 
-    def get_group(self, name: str) -> Optional[KeyBindingGroup]:
-        """Get a binding group by name.
-
-        Args:
-            name: Group name
+    def get_bindings(self) -> list[KeyBinding]:
+        """Get all key bindings.
 
         Returns:
-            Optional[KeyBindingGroup]: Group if found
-        """
-        return self.groups.get(name)
+            A list of all key bindings
 
-    def list_bindings(self) -> List[KeyBinding]:
-        """List all registered bindings.
-
-        Returns:
-            List[KeyBinding]: List of bindings
         """
         return list(self.bindings.values())
 
-    def list_groups(self) -> List[KeyBindingGroup]:
-        """List all binding groups.
+    async def handle_action(
+        self,
+        action: str,
+        *args: str | float | bool | None,
+        **kwargs: str | float | bool | None,
+    ) -> None:
+        """Handle a key action.
 
-        Returns:
-            List[KeyBindingGroup]: List of groups
+        Args:
+            action: The key combination that was pressed
+            *args: Additional arguments for the binding
+            **kwargs: Additional keyword arguments for the binding
+
         """
-        return list(self.groups.values()) 
+        binding = self.get_binding(action)
+        if binding:
+            await binding.execute(*args, **kwargs)

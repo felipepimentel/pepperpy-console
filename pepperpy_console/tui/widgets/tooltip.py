@@ -1,12 +1,20 @@
 """Tooltip widget for contextual help."""
 
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Literal
 
 import structlog
+from rich.text import Text
 from textual.containers import Container
 from textual.widgets import Static
 
-from .base import PepperWidget
+from .base import EventData, PepperWidget
+
+if TYPE_CHECKING:
+    from rich.console import ConsoleRenderable, RichCast
+    from textual.app import ComposeResult
+
 
 logger = structlog.get_logger(__name__)
 
@@ -17,6 +25,7 @@ class Tooltip(PepperWidget, Static):
     Attributes:
         text (str): Tooltip text
         position (str): Tooltip position
+
     """
 
     DEFAULT_CSS = """
@@ -59,31 +68,64 @@ class Tooltip(PepperWidget, Static):
 
     def __init__(
         self,
-        *args: Any,
+        *args: tuple[()],
         text: str,
-        position: str = "bottom",
-        **kwargs: Any,
+        position: Literal["top", "bottom", "left", "right"] = "bottom",
+        **kwargs: dict[str, EventData],
     ) -> None:
         """Initialize tooltip.
 
         Args:
-            *args: Positional arguments
-            text: Tooltip text
-            position: Tooltip position (top, bottom, left, right)
-            **kwargs: Keyword arguments
+            text: The text to display in the tooltip.
+            position: The position of the tooltip relative to its container.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
         """
         super().__init__(*args, **kwargs)
         self.text = text
         self.position = position
         self.add_class(f"-{position}")
 
-    def render(self) -> str:
+    def render(self) -> ConsoleRenderable | RichCast:
         """Render the tooltip.
 
         Returns:
-            str: Rendered content
+            The rendered tooltip.
+
         """
-        return self.text
+        return Text(self._text)
+
+    def set_text(self, value: str) -> None:
+        """Set the tooltip text.
+
+        Args:
+            value: The tooltip text.
+
+        """
+        self._text = value
+        self.refresh()
+
+    @property
+    def text(self) -> str:
+        """Get the tooltip text.
+
+        Returns:
+            The tooltip text.
+
+        """
+        return self._text
+
+    @text.setter
+    def text(self, value: str) -> None:
+        """Set the tooltip text.
+
+        Args:
+            value: The tooltip text.
+
+        """
+        self._text = value
+        self.refresh()
 
 
 class TooltipContainer(PepperWidget, Container):
@@ -91,49 +133,62 @@ class TooltipContainer(PepperWidget, Container):
 
     Attributes:
         tooltip (Optional[Tooltip]): Associated tooltip
+
     """
 
     def __init__(
         self,
-        *args: Any,
-        tooltip_text: Optional[str] = None,
-        tooltip_position: str = "bottom",
-        **kwargs: Any,
+        *args: tuple[()],
+        tooltip_text: str | None = None,
+        tooltip_position: Literal["top", "bottom", "left", "right"] = "bottom",
+        **kwargs: dict[str, EventData],
     ) -> None:
         """Initialize tooltip container.
 
         Args:
-            *args: Positional arguments
-            tooltip_text: Optional tooltip text
-            tooltip_position: Tooltip position
-            **kwargs: Keyword arguments
+            tooltip_text: The text to display in the tooltip.
+            tooltip_position: The position of the tooltip relative to its container.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
         """
         super().__init__(*args, **kwargs)
-        self.tooltip: Optional[Tooltip] = None
+        self._tooltip_widget: Tooltip | None = None
         if tooltip_text:
-            self.tooltip = Tooltip(text=tooltip_text, position=tooltip_position)
+            self._tooltip_widget = Tooltip(text=tooltip_text, position=tooltip_position)
 
-    def compose(self) -> None:
+    @property
+    def tooltip_text(self) -> str | None:
+        """Get the tooltip text.
+
+        Returns:
+            The tooltip text if set, None otherwise.
+
+        """
+        return self._tooltip_widget.text if self._tooltip_widget else None
+
+    def compose(self) -> ComposeResult:
         """Compose the container layout."""
-        if self.tooltip:
-            yield self.tooltip
+        if self._tooltip_widget:
+            yield self._tooltip_widget
 
-    def show_tooltip(self, x: Optional[int] = None, y: Optional[int] = None) -> None:
+    def show_tooltip(self, x: int | None = None, y: int | None = None) -> None:
         """Show the tooltip.
 
         Args:
             x: Optional x position
             y: Optional y position
+
         """
-        if self.tooltip:
-            self.tooltip.add_class("-visible")
+        if self._tooltip_widget:
+            self._tooltip_widget.add_class("-visible")
             if x is not None and y is not None:
-                self.tooltip.styles.margin = (y, x)
+                self._tooltip_widget.styles.margin = (y, x)
 
     def hide_tooltip(self) -> None:
         """Hide the tooltip."""
-        if self.tooltip:
-            self.tooltip.remove_class("-visible")
+        if self._tooltip_widget:
+            self._tooltip_widget.remove_class("-visible")
 
     def on_enter(self) -> None:
         """Handle mouse enter events."""
@@ -145,7 +200,7 @@ class TooltipContainer(PepperWidget, Container):
 
     def on_click(self) -> None:
         """Handle click events."""
-        if self.tooltip and "-visible" in self.tooltip.classes:
+        if self._tooltip_widget and "-visible" in self._tooltip_widget.classes:
             self.hide_tooltip()
         else:
             self.show_tooltip()

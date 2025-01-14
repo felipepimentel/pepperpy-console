@@ -1,180 +1,184 @@
-"""Input widgets with validation."""
+"""Input widget for PepperPy Console."""
 
-from typing import Any, Callable, List, Optional, Type
+from __future__ import annotations
 
-import structlog
+from typing import TYPE_CHECKING, ClassVar
+
+from textual.validation import Failure, ValidationResult, Validator
 from textual.widgets import Input
 
-from .base import PepperWidget
+from .base import EventData, PepperWidget
 
-logger = structlog.get_logger(__name__)
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+
+class InvalidFieldTypeError(ValueError):
+    """Raised when an invalid field type is provided."""
+
+    def __init__(self, field_type: str) -> None:
+        """Initialize the error.
+
+        Args:
+            field_type: The invalid field type.
+
+        """
+        super().__init__(f"Invalid field type: {field_type}")
+
+
+class TypedValidator(Validator):
+    """Validator for typed input values."""
+
+    def __init__(self, validator_func: Callable[[str], bool], message: str) -> None:
+        """Initialize the validator.
+
+        Args:
+            validator_func: Function to validate the input value.
+            message: Error message to display on validation failure.
+
+        """
+        super().__init__()
+        self.validator_func = validator_func
+        self.message = message
+
+    def validate(self, value: str) -> ValidationResult:
+        """Validate the input value.
+
+        Args:
+            value: Value to validate.
+
+        Returns:
+            ValidationResult indicating if the value is valid.
+
+        """
+        try:
+            is_valid = self.validator_func(value)
+            if is_valid:
+                return ValidationResult([])
+            return ValidationResult([Failure(self, value, self.message)])
+        except (ValueError, TypeError):
+            return ValidationResult([Failure(self, value, self.message)])
 
 
 class ValidatedInput(PepperWidget, Input):
     """Input widget with validation.
 
     Attributes:
-        type (Type): Expected value type
-        required (bool): Whether input is required
-        validators (List[callable]): Value validators
-        error (Optional[str]): Current validation error
+        field_type (str): Type of field (text, number, etc.)
+        required (bool): Whether the field is required
+        validators (List[Validator]): List of validators to apply
+        value (Any): Current value of the field
+
     """
 
-    COMPONENT_CLASSES = {
-        "input--placeholder": "Input placeholder",
-        "validated-input--invalid": "Input is invalid",
-        "validated-input--valid": "Input is valid",
-    }
-
-    DEFAULT_CSS = """
-    ValidatedInput {
-        background: $surface-darken-1;
-        color: $text;
-        border: tall $primary;
-        padding: 1 2;
-        margin: 0 1 1 1;
-        min-width: 30;
-        max-width: 100%;
-        height: 3;
-    }
-
-    ValidatedInput:focus {
-        border: tall $accent;
-        background: $surface;
-    }
-
-    ValidatedInput.validated-input--invalid {
-        border: tall $error;
-        background: $error 10%;
-    }
-
-    ValidatedInput.validated-input--valid {
-        border: tall $success;
-        background: $success 10%;
-    }
-
-    ValidatedInput .input--placeholder {
-        color: $text-muted;
-        opacity: 0.7;
-    }
-    """
+    VALID_TYPES: ClassVar[set[str]] = {"text", "number"}
 
     def __init__(
         self,
-        *args: Any,
-        type: Type = str,
-        required: bool = True,
-        validators: Optional[List[Callable]] = None,
-        **kwargs: Any,
+        *args: tuple[()],
+        field_type: str = "text",
+        required: bool = False,
+        validators: list[Validator] | None = None,
+        **kwargs: dict[str, EventData],
     ) -> None:
         """Initialize the input widget.
 
         Args:
-            *args: Positional arguments
-            type: Expected type
-            required: Whether input is required
-            validators: Optional value validators
-            **kwargs: Keyword arguments
+            field_type: Type of field (text, number, etc.)
+            required: Whether the field is required
+            validators: List of validators to apply
+            *args: Additional positional arguments
+            **kwargs: Additional keyword arguments
+
         """
         super().__init__(*args, **kwargs)
-        self.type = type
-        self.required = required
-        self.validators = validators or []
-        self.error: Optional[str] = None
+        if field_type not in self.VALID_TYPES:
+            raise InvalidFieldTypeError(field_type)
 
-    @property
-    def typed_value(self) -> Any:
-        """Get the typed value.
+        self.field_type = field_type
+        self.required = required
+        self._validators = validators or []
+
+    def get_validators(self) -> list[Validator]:
+        """Get the list of validators.
 
         Returns:
-            Any: Converted value
-        """
-        try:
-            return self.type(self.value) if self.value else None
-        except (ValueError, TypeError):
-            return None
+            List of validators to apply.
 
-    async def validate(self) -> bool:
+        """
+        validators: list[Validator] = []
+        if self.required:
+            validators.append(
+                TypedValidator(
+                    lambda x: bool(x.strip()),
+                    "This field is required",
+                ),
+            )
+
+        if self.field_type == "number":
+            validators.append(
+                TypedValidator(
+                    lambda x: bool(x.strip() and x.replace(".", "").isdigit()),
+                    "Please enter a valid number",
+                ),
+            )
+
+        validators.extend(self._validators)
+        return validators
+
+    def validate(self, value: str) -> ValidationResult | None:
         """Validate the input value.
 
+        Args:
+            value: Value to validate.
+
         Returns:
-            bool: Whether validation passed
+            ValidationResult indicating if the value is valid.
+
         """
-        self.error = None
-        self.remove_class("validated-input--invalid")
-        self.remove_class("validated-input--valid")
+        for validator in self.get_validators():
+            result = validator.validate(value)
+            if not result.is_valid:
+                return result
+        return None
 
-        # Check required
-        if self.required and not self.value:
-            self.error = "This field is required"
-            self.add_class("validated-input--invalid")
-            await self.events.emit("validation_error", self.error)
-            return False
+    def get_value(self) -> str | int | float | bool | None:
+        """Get the current value.
 
-        # Check type conversion
-        if self.value and self.typed_value is None:
-            self.error = f"Invalid {self.type.__name__} value"
-            self.add_class("validated-input--invalid")
-            await self.events.emit("validation_error", self.error)
-            return False
+        Returns:
+            Current value of the field.
 
-        # Run validators
-        for validator in self.validators:
+        """
+        if not self.value:
+            return None
+
+        if self.field_type == "number":
             try:
-                result = validator(self.typed_value)
-                if result is not True:
-                    self.error = str(result)
-                    self.add_class("validated-input--invalid")
-                    await self.events.emit("validation_error", self.error)
-                    return False
-            except Exception as e:
-                self.error = str(e)
-                self.add_class("validated-input--invalid")
-                await self.events.emit("validation_error", self.error)
-                return False
+                value_str = str(self.value)
+                if "." in value_str:
+                    return float(value_str)
+                return int(value_str)
+            except (ValueError, TypeError):
+                return None
 
-        self.add_class("validated-input--valid")
-        await self.events.emit("validation_success", self.typed_value)
-        return True
+        return self.value
 
-    def clear(self) -> None:
-        """Clear the input value."""
-        self.value = ""
-        self.error = None
-        self.remove_class("validated-input--invalid")
-        self.remove_class("validated-input--valid")
-
-
-class ModelInput(ValidatedInput):
-    """Input widget bound to a data model field.
-
-    Attributes:
-        model (Type): Data model class
-        field (str): Model field name
-    """
-
-    def __init__(
-        self,
-        *args: Any,
-        model: Type,
-        field: str,
-        **kwargs: Any,
-    ) -> None:
-        """Initialize the model input.
+    def set_value(self, value: str | float | bool | None) -> None:
+        """Set the current value.
 
         Args:
-            *args: Positional arguments
-            model: Data model class
-            field: Model field name
-            **kwargs: Keyword arguments
+            value: Value to set.
+
         """
-        field_info = model.__fields__[field]
-        super().__init__(
-            *args,
-            type=field_info.type_,
-            required=field_info.required,
-            validators=field_info.validators,
-            **kwargs,
-        )
-        self.model = model
-        self.field = field
+        if value is None:
+            self.value = ""
+            return
+
+        if self.field_type == "number":
+            try:
+                float(value)  # Validate number
+                self.value = str(value)
+            except (ValueError, TypeError):
+                self.value = ""
+        else:
+            self.value = str(value)

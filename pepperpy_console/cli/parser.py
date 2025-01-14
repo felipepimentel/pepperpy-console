@@ -1,7 +1,8 @@
 """Command parser for PepperPy CLI."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import List, Optional
 
 
 @dataclass
@@ -11,16 +12,17 @@ class ParsedCommand:
     Attributes:
         name (str): Command name
         args (List[str]): Command arguments
+
     """
 
     name: str
-    args: List[str]
+    args: list[str]
 
 
 class CommandParser:
     """Parser for command strings."""
 
-    async def parse(self, command_str: str) -> Optional[tuple[str, dict]]:
+    async def parse(self, command_str: str) -> tuple[str, dict] | None:
         """Parse a command string.
 
         Args:
@@ -28,6 +30,7 @@ class CommandParser:
 
         Returns:
             Tuple of command name and arguments, or None if input is empty
+
         """
         # Handle empty input
         if not command_str or command_str.isspace():
@@ -45,7 +48,7 @@ class CommandParser:
             return command_name, {"args": args}
         return command_name, {}
 
-    def _split_args(self, args_str: str) -> List[str]:
+    def _split_args(self, args_str: str) -> list[str]:
         """Split argument string into individual arguments.
 
         Args:
@@ -53,6 +56,7 @@ class CommandParser:
 
         Returns:
             List[str]: List of arguments
+
         """
         args = []
         current_arg = []

@@ -1,15 +1,23 @@
 """TreeView widget for displaying hierarchical data."""
 
-from typing import Any, Dict, List, Optional, Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import structlog
 from textual.containers import Container
 from textual.message import Message
 from textual.widgets import Static
 
-from .base import PepperWidget
+from .base import EventData, PepperWidget
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
 
 logger = structlog.get_logger(__name__)
+
+type NodeData = str | int | float | bool | None | dict[str, NodeData] | list[NodeData]
 
 
 class TreeNode(PepperWidget, Static):
@@ -21,6 +29,7 @@ class TreeNode(PepperWidget, Static):
         is_expanded (bool): Whether node is expanded
         level (int): Node indentation level
         data (Any): Optional associated data
+
     """
 
     class NodeClicked(Message):
@@ -28,6 +37,7 @@ class TreeNode(PepperWidget, Static):
 
         Attributes:
             node (TreeNode): Clicked node
+
         """
 
         def __init__(self, node: "TreeNode") -> None:
@@ -35,6 +45,7 @@ class TreeNode(PepperWidget, Static):
 
             Args:
                 node: Clicked node
+
             """
             super().__init__()
             self.node = node
@@ -65,40 +76,47 @@ class TreeNode(PepperWidget, Static):
 
     def __init__(
         self,
-        *args: Any,
+        *args: tuple[()],
         label: str,
-        children: Optional[List["TreeNode"]] = None,
+        children: list["TreeNode"] | None = None,
         is_expanded: bool = False,
         level: int = 0,
-        data: Any = None,
-        **kwargs: Any,
+        data: NodeData = None,
+        **kwargs: dict[str, EventData],
     ) -> None:
         """Initialize tree node.
 
         Args:
-            *args: Positional arguments
-            label: Node label
-            children: Optional child nodes
-            is_expanded: Whether node is expanded
-            level: Node indentation level
-            data: Optional associated data
-            **kwargs: Keyword arguments
+            label: The label to display for this node.
+            children: Child nodes of this node.
+            is_expanded: Whether this node is expanded.
+            level: The indentation level of this node.
+            data: Custom data associated with this node.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
         """
         super().__init__(*args, **kwargs)
         self.label = label
-        self.children = children or []
+        self._children = children or []
         self.is_expanded = is_expanded
         self.level = level
         self.data = data
 
-        if self.children:
+        if self._children:
             self.add_class("-has-children")
+
+    @property
+    def children(self) -> list["TreeNode"]:
+        """Get child nodes."""
+        return self._children
 
     def render(self) -> str:
         """Render the node.
 
         Returns:
             str: Rendered content
+
         """
         indent = "  " * self.level
         icon = "▼ " if self.is_expanded else "▶ " if self.children else "  "
@@ -113,7 +131,7 @@ class TreeNode(PepperWidget, Static):
     async def on_click(self) -> None:
         """Handle click events."""
         self.toggle()
-        await self.emit_no_wait(self.NodeClicked(self))
+        await self.emit_event("clicked", {"node": self.label})
 
 
 class TreeView(PepperWidget, Container):
@@ -122,6 +140,7 @@ class TreeView(PepperWidget, Container):
     Attributes:
         nodes (List[TreeNode]): Root level nodes
         selected_node (Optional[TreeNode]): Currently selected node
+
     """
 
     DEFAULT_CSS = """
@@ -139,25 +158,28 @@ class TreeView(PepperWidget, Container):
 
     def __init__(
         self,
-        *args: Any,
-        data: Union[List[Dict[str, Any]], Dict[str, Any]],
-        **kwargs: Any,
+        *args: tuple[()],
+        data: dict[str, NodeData] | list[NodeData],
+        **kwargs: dict[str, EventData],
     ) -> None:
         """Initialize tree view.
 
         Args:
-            *args: Positional arguments
-            data: Tree data structure
-            **kwargs: Keyword arguments
+            data: The data to display in the tree.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
         """
         super().__init__(*args, **kwargs)
-        self.nodes: List[TreeNode] = []
-        self.selected_node: Optional[TreeNode] = None
-        self._build_tree(data)
+        self.data = data
+        self.nodes: list[TreeNode] = []
+        self.selected_node: TreeNode | None = None
 
     def _build_tree(
-        self, data: Union[List[Dict[str, Any]], Dict[str, Any]], level: int = 0
-    ) -> List[TreeNode]:
+        self,
+        data: dict[str, NodeData] | list[NodeData],
+        level: int = 0,
+    ) -> list[TreeNode]:
         """Build tree structure from data.
 
         Args:
@@ -166,6 +188,7 @@ class TreeView(PepperWidget, Container):
 
         Returns:
             List[TreeNode]: Created tree nodes
+
         """
         nodes = []
 
@@ -175,7 +198,7 @@ class TreeView(PepperWidget, Container):
             items = [(str(i), item) for i, item in enumerate(data)]
 
         for key, value in items:
-            if isinstance(value, (dict, list)):
+            if isinstance(value, dict | list):
                 children = self._build_tree(value, level + 1)
                 node = TreeNode(
                     label=key,
@@ -183,30 +206,25 @@ class TreeView(PepperWidget, Container):
                     level=level,
                     data=value,
                 )
-                nodes.append(node)
             else:
-                node = TreeNode(
-                    label=f"{key}: {value}",
-                    level=level,
-                    data=value,
-                )
-                nodes.append(node)
+                node = TreeNode(label=key, level=level, data=value)
+            nodes.append(node)
 
         return nodes
 
-    def compose(self) -> None:
+    def compose(self) -> Generator[TreeNode, None, None]:
         """Compose the tree view layout."""
         for node in self.nodes:
             yield node
             if node.is_expanded:
-                for child in node.children:
-                    yield child
+                yield from node.children
 
     def select_node(self, node: TreeNode) -> None:
         """Select a tree node.
 
         Args:
             node: Node to select
+
         """
         if self.selected_node:
             self.selected_node.remove_class("-selected")
@@ -216,3 +234,10 @@ class TreeView(PepperWidget, Container):
     async def on_tree_node_node_clicked(self, message: TreeNode.NodeClicked) -> None:
         """Handle node click events."""
         self.select_node(message.node)
+
+    def _get_visible_nodes(self) -> Generator[TreeNode, None, None]:
+        """Get all visible nodes in the tree."""
+        for node in self.nodes:
+            yield node
+            if node.is_expanded:
+                yield from node.children

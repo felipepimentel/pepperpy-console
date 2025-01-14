@@ -2,7 +2,7 @@
 
 This section provides detailed documentation for the PepperPy Console API.
 
-## Core Components
+## Components
 
 ### PepperApp
 
@@ -145,20 +145,7 @@ class Theme:
 
 ## Plugin System
 
-### Plugin
-
-Base class for plugins.
-
-```python
-class Plugin:
-    """Base class for plugins."""
-    
-    def __init__(self, name: str):
-        """Initialize a plugin."""
-        
-    def register(self, app: PepperApp):
-        """Register the plugin with the application."""
-```
+PepperPy Console uses the plugin system from `pepperpy-core`. For detailed documentation on the plugin system, please refer to the [pepperpy-core documentation](https://felipepimentel.github.io/pepperpy-core/modules/plugin.html).
 
 ## Events
 

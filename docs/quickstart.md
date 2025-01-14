@@ -169,17 +169,25 @@ app.run()
 
 ## Using Plugins
 
-Create and use plugins:
+PepperPy Console uses the plugin system from `pepperpy-core`. To create and use plugins:
 
 ```python
-from pepperpy_console import Plugin, Command
+from pepperpy_core.plugin import Plugin, PluginConfig
+from pepperpy_console import Command
 
 class MyPlugin(Plugin):
-    def __init__(self, name: str):
-        super().__init__(name)
-        self.setup_commands()
+    def configure(self) -> PluginConfig:
+        return PluginConfig(
+            name="my_plugin",
+            version="1.0.0",
+            description="My custom plugin",
+            requires=[],
+            hooks=["app.startup", "app.shutdown"],
+            settings={}
+        )
 
-    def setup_commands(self):
+    async def initialize(self) -> None:
+        # Setup plugin
         async def plugin_command():
             return "Plugin command executed!"
 
@@ -189,12 +197,22 @@ class MyPlugin(Plugin):
             description="Execute plugin command"
         )
 
+    @Plugin.hook("app.startup")
+    async def on_startup(self) -> None:
+        print("Plugin starting up")
+
+    @Plugin.hook("app.shutdown")
+    async def on_shutdown(self) -> None:
+        print("Plugin shutting down")
+
 # In your app
 app = PepperApp()
-plugin = MyPlugin("my_plugin")
-app.register_plugin(plugin)
+plugin = MyPlugin()
+app.plugins.register(plugin)
 app.run()
 ```
+
+For more details on the plugin system, refer to the [pepperpy-core documentation](https://felipepimentel.github.io/pepperpy-core/modules/plugin.html).
 
 ## Next Steps
 

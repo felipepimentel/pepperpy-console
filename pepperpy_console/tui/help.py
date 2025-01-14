@@ -1,15 +1,21 @@
 """Help system for documentation and keyboard shortcuts."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING
 
 import structlog
 from rich.markdown import Markdown
 from textual.containers import Container, Vertical
 from textual.widgets import Static
 
-from .keyboard import KeyBinding
 from .widgets.base import PepperWidget
+
+if TYPE_CHECKING:
+    from textual.app import ComposeResult
+
+    from .keyboard import KeyBinding
 
 logger = structlog.get_logger(__name__)
 
@@ -23,6 +29,7 @@ class HelpSection:
         content (str): Section content in markdown
         category (str): Section category
         order (int): Display order
+
     """
 
     title: str
@@ -36,6 +43,7 @@ class HelpContent(PepperWidget, Static):
 
     Attributes:
         content (str): Current content
+
     """
 
     DEFAULT_CSS = """
@@ -46,13 +54,19 @@ class HelpContent(PepperWidget, Static):
     }
     """
 
-    def __init__(self, *args: Any, content: str = "", **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *args: str | float | bool | None,
+        content: str = "",
+        **kwargs: str | float | bool | None,
+    ) -> None:
         """Initialize the help content widget.
 
         Args:
             *args: Positional arguments
             content: Initial content
             **kwargs: Keyword arguments
+
         """
         super().__init__(*args, **kwargs)
         self.content = content
@@ -62,6 +76,7 @@ class HelpContent(PepperWidget, Static):
 
         Returns:
             Markdown: Rendered content
+
         """
         return Markdown(self.content)
 
@@ -72,6 +87,7 @@ class HelpViewer(PepperWidget, Container):
     Attributes:
         sections (Dict[str, HelpSection]): Available help sections
         current_section (Optional[str]): Currently displayed section
+
     """
 
     DEFAULT_CSS = """
@@ -96,14 +112,18 @@ class HelpViewer(PepperWidget, Container):
     }
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *args: str | float | bool | None,
+        **kwargs: str | float | bool | None,
+    ) -> None:
         """Initialize the help viewer."""
         super().__init__(*args, **kwargs)
-        self.sections: Dict[str, HelpSection] = {}
-        self.current_section: Optional[str] = None
+        self.sections: dict[str, HelpSection] = {}
+        self.current_section: str | None = None
         self._content = Vertical(id="content")
 
-    def compose(self) -> None:
+    def compose(self) -> ComposeResult:
         """Compose the help viewer layout."""
         yield self._content
 
@@ -111,24 +131,24 @@ class HelpViewer(PepperWidget, Container):
         """Add a help section.
 
         Args:
-            section: Help section configuration
+            section: Help section to add.
+
         """
         self.sections[section.title] = section
-        logger.debug(f"Added help section: {section.title}")
+        logger.debug("Added help section: %s", section.title)
 
     def show_section(self, title: str) -> None:
         """Show a help section.
 
         Args:
-            title: Section title
+            title: Section title.
+
         """
         if title in self.sections:
-            self.current_section = title
-            self.add_class("-visible")
             section = self.sections[title]
             self._content.mount(HelpContent(content=section.content))
         else:
-            logger.error(f"Help section not found: {title}")
+            logger.error("Help section not found: %s", title)
 
     def clear(self) -> None:
         """Clear the current section."""
@@ -141,7 +161,7 @@ class KeyboardHelpSection(HelpSection):
     """Help section for keyboard shortcuts."""
 
     @classmethod
-    def generate(cls, bindings: List[KeyBinding]) -> "KeyboardHelpSection":
+    def generate(cls, bindings: list["KeyBinding"]) -> "KeyboardHelpSection":
         """Generate keyboard help section.
 
         Args:
@@ -149,11 +169,15 @@ class KeyboardHelpSection(HelpSection):
 
         Returns:
             KeyboardHelpSection: Generated help section
+
         """
         content = "# Keyboard Shortcuts\n\n"
         for binding in bindings:
             content += f"- **{binding.key}**: {binding.description}\n"
 
         return cls(
-            title="Keyboard Shortcuts", content=content, category="Help", order=0
+            title="Keyboard Shortcuts",
+            content=content,
+            category="Help",
+            order=0,
         )

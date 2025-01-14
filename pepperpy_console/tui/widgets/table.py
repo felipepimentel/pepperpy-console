@@ -1,13 +1,15 @@
 """Table widget for data display."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Literal
 
 import structlog
 from rich.table import Table as RichTable
 from textual.widgets import Static
 
-from .base import PepperWidget
+from .base import EventData, PepperWidget
 
 logger = structlog.get_logger(__name__)
 
@@ -22,12 +24,13 @@ class Column:
         width (Optional[int]): Column width
         align (str): Text alignment
         style (str): Cell style
+
     """
 
     key: str
     label: str
-    width: Optional[int] = None
-    align: str = "left"
+    width: int | None = None
+    align: Literal["left", "center", "right"] = "left"
     style: str = ""
 
 
@@ -39,6 +42,7 @@ class PepperTable(PepperWidget, Static):
         data (List[Dict[str, Any]]): Table data
         sort_key (Optional[str]): Current sort column
         sort_reverse (bool): Sort direction
+
     """
 
     DEFAULT_CSS = """
@@ -68,18 +72,24 @@ class PepperTable(PepperWidget, Static):
     }
     """
 
-    def __init__(self, *args: Any, columns: List[Column], **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *args: tuple[()],
+        columns: list[Column],
+        **kwargs: dict[str, EventData],
+    ) -> None:
         """Initialize the table widget.
 
         Args:
-            *args: Positional arguments
-            columns: Table columns
-            **kwargs: Keyword arguments
+            columns: The columns to display in the table.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
         """
         super().__init__(*args, **kwargs)
         self.columns = columns
-        self.data: List[Dict[str, Any]] = []
-        self.sort_key: Optional[str] = None
+        self.rows: list[list[str]] = []
+        self.sort_key: str | None = None
         self.sort_reverse = False
 
     def render(self) -> RichTable:
@@ -87,6 +97,7 @@ class PepperTable(PepperWidget, Static):
 
         Returns:
             RichTable: Rich table instance
+
         """
         table = RichTable(
             expand=True,
@@ -111,21 +122,26 @@ class PepperTable(PepperWidget, Static):
 
         return table
 
-    async def load_data(self, data: List[Dict[str, Any]]) -> None:
+    async def load_data(
+        self,
+        data: list[dict[str, str | int | float | bool | None]],
+    ) -> None:
         """Load table data.
 
         Args:
             data: List of data rows
+
         """
         self.data = data
         self.refresh()
-        await self.events.emit("data_loaded", len(data))
+        await self.emit_event("data_loaded", {"count": len(data)})
 
     async def sort_by(self, key: str) -> None:
         """Sort table by column.
 
         Args:
             key: Column key
+
         """
         if self.sort_key == key:
             self.sort_reverse = not self.sort_reverse
@@ -134,19 +150,23 @@ class PepperTable(PepperWidget, Static):
             self.sort_reverse = False
 
         self.refresh()
-        await self.events.emit("sorted", {"key": key, "reverse": self.sort_reverse})
+        await self.emit_event("sorted", {"key": key, "reverse": self.sort_reverse})
 
-    def _get_sorted_data(self) -> List[Dict[str, Any]]:
+    def _get_sorted_data(self) -> list[dict[str, str | int | float | bool | None]]:
         """Get sorted data rows.
 
         Returns:
             List[Dict[str, Any]]: Sorted data
+
         """
         if not self.sort_key:
             return self.data
 
+        def sort_key(row: dict[str, str | int | float | bool | None]) -> str:
+            return str(row.get(self.sort_key, "")) if self.sort_key else ""
+
         return sorted(
             self.data,
-            key=lambda x: x.get(self.sort_key, ""),
+            key=sort_key,
             reverse=self.sort_reverse,
         )

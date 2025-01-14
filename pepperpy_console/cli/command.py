@@ -1,83 +1,135 @@
-"""Command classes for PepperPy CLI."""
+"""Command management module."""
 
-from typing import Any, Callable, Dict, List, Optional, Awaitable
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Coroutine, Sequence
+
+
+CommandResult = TypeVar("CommandResult", str, int, float, bool, None)
+
+
+class CommandProtocol(Protocol):
+    """Protocol for command execution."""
+
+    async def execute(
+        self,
+        *args: str | float | bool | None,
+        **kwargs: str | float | bool | None,
+    ) -> str | int | float | bool | None:
+        """Execute the command with arguments."""
+
+
+class InvalidCommandResultError(TypeError):
+    """Error raised when a command returns an invalid type."""
+
+    def __init__(self, result_type: type) -> None:
+        """Initialize the error.
+
+        Args:
+            result_type: The invalid result type.
+
+        """
+        super().__init__(f"Command returned invalid type: {result_type}")
 
 
 class Command:
-    """Command class for PepperPy CLI.
-
-    Attributes:
-        name (str): Command name
-        callback (Callable): Command callback function
-        description (str): Command description
-        aliases (List[str]): Command aliases
-    """
+    """Base class for all commands."""
 
     def __init__(
         self,
         name: str,
-        callback: Callable[..., Awaitable[Any]],
+        callback: Callable[..., Coroutine[Any, Any, str | int | float | bool | None]],
         description: str = "",
-        aliases: Optional[List[str]] = None,
-    ):
+        aliases: Sequence[str] | None = None,
+    ) -> None:
         """Initialize a command.
 
         Args:
-            name: Command name
-            callback: Async callback function
-            description: Command description
-            aliases: Optional list of command aliases
+            name: The name of the command.
+            callback: The function to execute when the command is called.
+            description: A description of what the command does.
+            aliases: Alternative names for the command.
+
         """
         self.name = name
-        self.callback = callback
+        self._callback = callback
         self.description = description
         self.aliases = aliases or []
 
-    async def execute(self, *args: Any, **kwargs: Any) -> Any:
+    @property
+    def callback(
+        self,
+    ) -> Callable[..., Coroutine[Any, Any, str | int | float | bool | None]]:
+        """Get the command callback.
+
+        Returns:
+            The command callback.
+
+        """
+        return self._callback
+
+    async def execute(
+        self,
+        *args: str | float | bool | None,
+        **kwargs: str | float | bool | None,
+    ) -> str | int | float | bool | None:
         """Execute the command with arguments.
 
         Args:
-            *args: Positional arguments
-            **kwargs: Keyword arguments
+            *args: Positional arguments for the command.
+            **kwargs: Keyword arguments for the command.
 
         Returns:
-            Result of the callback function
+            The result of executing the command.
+
+        Raises:
+            InvalidCommandResultError: If the command returns an invalid type.
+
         """
-        return await self.callback(*args, **kwargs)
+        result = await self.callback(*args, **kwargs)
+        if not isinstance(result, str | int | float | bool) and result is not None:
+            raise InvalidCommandResultError(type(result))
+        return result
 
 
 class CommandGroup:
     """Group of related commands."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize a command group."""
-        self.commands: Dict[str, Command] = {}
+        self.commands: dict[str, Command] = {}
 
     def add_command(self, command: Command) -> None:
         """Add a command to the group.
 
         Args:
-            command: Command to add
+            command: The command to add.
+
         """
         self.commands[command.name] = command
         for alias in command.aliases:
             self.commands[alias] = command
 
-    def get_command(self, name: str) -> Optional[Command]:
+    def get_command(self, name: str) -> Command | None:
         """Get a command by name.
 
         Args:
-            name: Command name
+            name: The name of the command.
 
         Returns:
-            Optional[Command]: Command if found
+            The command if found, None otherwise.
+
         """
         return self.commands.get(name)
 
-    def list_commands(self) -> Dict[str, Command]:
-        """List all commands in the group.
+    def get_commands(self) -> list[Command]:
+        """Get all commands in the group.
 
         Returns:
-            Dict[str, Command]: Group commands
+            A list of all commands.
+
         """
-        return self.commands
+        return list(self.commands.values())

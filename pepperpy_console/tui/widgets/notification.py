@@ -1,15 +1,21 @@
 """Notification system for TUI applications."""
 
-from dataclasses import dataclass
+from __future__ import annotations
+
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import TYPE_CHECKING, Literal
 
 import structlog
 from rich.text import Text
 from textual.containers import Container
 from textual.widgets import Static
 
-from .base import PepperWidget
+from .base import EventData, PepperWidget
+
+if TYPE_CHECKING:
+    from textual.app import ComposeResult
+
 
 logger = structlog.get_logger(__name__)
 
@@ -23,17 +29,13 @@ class Notification:
         type (str): Message type (info, warning, error)
         timestamp (datetime): Creation timestamp
         duration (Optional[float]): Display duration in seconds
+
     """
 
     message: str
-    type: str = "info"
-    timestamp: datetime = None
-    duration: Optional[float] = 5.0
-
-    def __post_init__(self) -> None:
-        """Initialize default values."""
-        if self.timestamp is None:
-            self.timestamp = datetime.now()
+    type: Literal["info", "warning", "error"] = "info"
+    timestamp: datetime = field(default_factory=datetime.now)
+    duration: float | None = 5.0
 
 
 class NotificationWidget(PepperWidget, Static):
@@ -41,6 +43,7 @@ class NotificationWidget(PepperWidget, Static):
 
     Attributes:
         notification (Notification): Notification to display
+
     """
 
     DEFAULT_CSS = """
@@ -74,13 +77,19 @@ class NotificationWidget(PepperWidget, Static):
     }
     """
 
-    def __init__(self, *args: Any, notification: Notification, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *args: tuple[()],
+        notification: Notification,
+        **kwargs: dict[str, EventData],
+    ) -> None:
         """Initialize the notification widget.
 
         Args:
-            *args: Positional arguments
-            notification: Notification to display
-            **kwargs: Keyword arguments
+            notification: The notification to display.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
         """
         super().__init__(*args, **kwargs)
         self.notification = notification
@@ -91,9 +100,11 @@ class NotificationWidget(PepperWidget, Static):
 
         Returns:
             Text: Rich text representation
+
         """
         style = {"info": "blue", "warning": "yellow", "error": "red"}.get(
-            self.notification.type, "white"
+            self.notification.type,
+            "white",
         )
 
         return Text.assemble(
@@ -108,6 +119,7 @@ class NotificationCenter(PepperWidget, Container):
     Attributes:
         max_notifications (int): Maximum number of visible notifications
         notifications (List[Notification]): Active notifications
+
     """
 
     DEFAULT_CSS = """
@@ -130,50 +142,77 @@ class NotificationCenter(PepperWidget, Container):
     }
     """
 
-    def __init__(self, *args: Any, max_notifications: int = 5, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *args: tuple[()],
+        max_notifications: int = 5,
+        **kwargs: dict[str, EventData],
+    ) -> None:
         """Initialize the notification center.
 
         Args:
-            *args: Positional arguments
-            max_notifications: Maximum visible notifications
-            **kwargs: Keyword arguments
+            max_notifications: The maximum number of notifications to display.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
         """
         super().__init__(*args, **kwargs)
         self.max_notifications = max_notifications
-        self.notifications: List[Notification] = []
+        self.notifications: list[Notification] = []
 
-    async def notify(
-        self, message: str, type: str = "info", duration: Optional[float] = None
+    def compose(self) -> ComposeResult:
+        """Compose the notification center layout."""
+        for notification in reversed(self.notifications):
+            yield NotificationWidget(notification=notification)
+
+    def notify(
+        self,
+        message: str,
+        *,
+        title: str = "",  # Required by Widget interface
+        severity: Literal["information", "warning", "error"] = "information",
+        timeout: float | None = None,
     ) -> None:
-        """Show a new notification.
+        """Show a notification.
 
         Args:
             message: Notification message
-            type: Message type
-            duration: Optional display duration
+            title: Optional notification title (required by Widget interface)
+            severity: Message severity
+            timeout: Optional display timeout
+
         """
-        notification = Notification(message, type, duration=duration)
+        # Map severity to notification type
+        notification_type: Literal["info", "warning", "error"]
+        if severity == "information":
+            notification_type = "info"
+        elif severity == "warning":
+            notification_type = "warning"
+        else:
+            notification_type = "error"
+
+        notification = Notification(
+            message=message,
+            type=notification_type,
+            duration=timeout,
+        )
         self.notifications.append(notification)
 
         # Remove old notifications if over limit
         while len(self.notifications) > self.max_notifications:
             self.notifications.pop(0)
 
-        await self.refresh_notifications()
-        await self.events.emit("notification", notification)
-
-        if duration:
-            # Schedule removal
-            async def remove():
-                await self.remove_notification(notification)
-
-            self.set_timer(duration, remove)
+        # Refresh notifications synchronously
+        self.query("NotificationWidget").remove()
+        for notification in self.notifications:
+            self.mount(NotificationWidget(notification=notification))
 
     async def remove_notification(self, notification: Notification) -> None:
         """Remove a notification.
 
         Args:
             notification: Notification to remove
+
         """
         if notification in self.notifications:
             self.notifications.remove(notification)
@@ -181,8 +220,8 @@ class NotificationCenter(PepperWidget, Container):
 
     async def refresh_notifications(self) -> None:
         """Refresh the notification display."""
-        self.remove_children()
-        for notification in reversed(self.notifications):
+        self.query("NotificationWidget").remove()
+        for notification in self.notifications:
             self.mount(NotificationWidget(notification=notification))
 
     def clear_all(self) -> None:

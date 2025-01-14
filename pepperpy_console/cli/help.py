@@ -1,7 +1,8 @@
 """Help system for CLI applications."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
 
 import structlog
 
@@ -16,11 +17,12 @@ class HelpTopic:
         name (str): Topic name
         content (str): Topic content
         category (Optional[str]): Topic category
+
     """
 
     name: str
     content: str
-    category: Optional[str] = None
+    category: str | None = None
 
 
 @dataclass
@@ -31,17 +33,19 @@ class HelpCategory:
         name (str): Category name
         description (str): Category description
         topics (List[HelpTopic]): Topics in the category
+
     """
 
     name: str
     description: str = ""
-    topics: List[HelpTopic] = field(default_factory=list)
+    topics: list[HelpTopic] = field(default_factory=list)
 
     def add_topic(self, topic: HelpTopic) -> None:
         """Add a topic to the category.
 
         Args:
             topic: Topic to add
+
         """
         topic.category = self.name
         self.topics.append(topic)
@@ -53,18 +57,20 @@ class HelpManager:
     Attributes:
         topics (Dict[str, HelpTopic]): Registered topics
         categories (Dict[str, HelpCategory]): Help categories
+
     """
 
     def __init__(self) -> None:
         """Initialize the help manager."""
-        self.topics: Dict[str, HelpTopic] = {}
-        self.categories: Dict[str, HelpCategory] = {}
+        self.topics: dict[str, HelpTopic] = {}
+        self.categories: dict[str, HelpCategory] = {}
 
     def register_topic(self, topic: HelpTopic) -> None:
         """Register a help topic.
 
         Args:
             topic: Topic to register
+
         """
         self.topics[topic.name] = topic
         if topic.category and topic.category not in self.categories:
@@ -76,12 +82,13 @@ class HelpManager:
 
         Args:
             category: Category to register
+
         """
         self.categories[category.name] = category
         for topic in category.topics:
             self.topics[topic.name] = topic
 
-    def get_topic(self, name: str) -> Optional[HelpTopic]:
+    def get_topic(self, name: str) -> HelpTopic | None:
         """Get a help topic by name.
 
         Args:
@@ -89,10 +96,11 @@ class HelpManager:
 
         Returns:
             Optional[HelpTopic]: Topic if found
+
         """
         return self.topics.get(name)
 
-    def get_category(self, name: str) -> Optional[HelpCategory]:
+    def get_category(self, name: str) -> HelpCategory | None:
         """Get a help category by name.
 
         Args:
@@ -100,21 +108,24 @@ class HelpManager:
 
         Returns:
             Optional[HelpCategory]: Category if found
+
         """
         return self.categories.get(name)
 
-    def list_topics(self) -> List[HelpTopic]:
+    def list_topics(self) -> list[HelpTopic]:
         """List all registered help topics.
 
         Returns:
             List[HelpTopic]: List of topics
+
         """
         return list(self.topics.values())
 
-    def list_categories(self) -> List[HelpCategory]:
+    def list_categories(self) -> list[HelpCategory]:
         """List all help categories.
 
         Returns:
             List[HelpCategory]: List of categories
+
         """
-        return list(self.categories.values()) 
+        return list(self.categories.values())

@@ -1,196 +1,74 @@
-"""Command system for TUI operations."""
+"""Command management for PepperPy Console."""
 
-from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from __future__ import annotations
+
+from typing import Protocol
 
 import structlog
-from textual.containers import Container
-from textual.message import Message
-from textual.widgets import Input, ListView
 
-from .widgets.base import PepperWidget
-
-logger = structlog.get_logger(__name__)
+logger = structlog.get_logger()
 
 
-@dataclass
-class Command:
-    """Command configuration.
-
-    Attributes:
-        name (str): Command name
-        description (str): Command description
-        handler (Callable): Command handler
-        category (str): Command category
-        shortcut (Optional[str]): Keyboard shortcut
-    """
+class Command(Protocol):
+    """Command protocol."""
 
     name: str
     description: str
-    handler: Callable
-    category: str = "General"
-    shortcut: Optional[str] = None
+    category: str | None
+    shortcut: str | None
+
+    async def execute(self, *args: object, **kwargs: object) -> None:
+        """Execute command."""
+        ...
 
 
-class CommandPalette(PepperWidget, Container):
-    """Command palette for executing global commands.
+class CommandManager:
+    """Command manager for PepperPy Console."""
 
-    Attributes:
-        commands (Dict[str, Command]): Available commands
-        visible (bool): Whether palette is visible
-    """
-
-    class CommandExecuted(Message):
-        """Command executed message.
-
-        Attributes:
-            name (str): Command name
-            category (str): Command category
-        """
-
-        def __init__(self, name: str, category: str) -> None:
-            """Initialize command executed message.
-
-            Args:
-                name: Command name
-                category: Command category
-            """
-            super().__init__()
-            self.name = name
-            self.category = category
-
-    class CommandError(Message):
-        """Command error message.
-
-        Attributes:
-            name (str): Command name
-            error (str): Error message
-        """
-
-        def __init__(self, name: str, error: str) -> None:
-            """Initialize command error message.
-
-            Args:
-                name: Command name
-                error: Error message
-            """
-            super().__init__()
-            self.name = name
-            self.error = error
-
-    DEFAULT_CSS = """
-    CommandPalette {
-        dock: top;
-        layer: command;
-        width: 60%;
-        margin: 1 0;
-        background: $background;
-        border: solid $primary;
-        display: none;
-    }
-
-    CommandPalette.-visible {
-        display: block;
-    }
-
-    CommandPalette Input {
-        margin: 1;
-    }
-
-    CommandPalette ListView {
-        height: 10;
-        margin: 0 1;
-    }
-    """
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Initialize the command palette."""
-        super().__init__(*args, **kwargs)
-        self.commands: Dict[str, Command] = {}
-        self.visible = False
-        self._search = Input(placeholder="Search commands...")
-        self._list = ListView()
-        self._filtered_commands: List[Command] = []
-
-    def compose(self) -> None:
-        """Compose the palette layout."""
-        yield self._search
-        yield self._list
+    def __init__(self) -> None:
+        """Initialize command manager."""
+        self.commands: dict[str, Command] = {}
 
     def register_command(self, command: Command) -> None:
-        """Register a command.
+        """Register command.
 
         Args:
-            command: Command configuration
+            command: Command to register.
+
         """
+        logger.debug("Registered command: %s", command.name)
         self.commands[command.name] = command
-        logger.debug(f"Registered command: {command.name}")
 
-    def register_many(self, commands: List[Command]) -> None:
-        """Register multiple commands.
+    def get_command(self, name: str) -> Command:
+        """Get command by name.
 
         Args:
-            commands: List of commands
+            name: Command name.
+
+        Returns:
+            Command instance.
+
+        Raises:
+            KeyError: If command not found.
+
         """
-        for command in commands:
-            self.register_command(command)
+        if name not in self.commands:
+            error_msg = f"Command '{name}' not found"
+            raise KeyError(error_msg)
+        return self.commands[name]
 
-    async def show(self) -> None:
-        """Show the command palette."""
-        self.visible = True
-        self.add_class("-visible")
-        self._update_list()
-        self._search.focus()
-        await self.events.emit("palette_shown")
-
-    async def hide(self) -> None:
-        """Hide the command palette."""
-        self.visible = False
-        self.remove_class("-visible")
-        self._search.value = ""
-        await self.events.emit("palette_hidden")
-
-    async def toggle(self) -> None:
-        """Toggle palette visibility."""
-        if self.visible:
-            await self.hide()
-        else:
-            await self.show()
-
-    async def on_input_changed(self, message: Message) -> None:
-        """Handle search input changes."""
-        if isinstance(message.sender, Input):
-            self._update_list()
-
-    async def on_list_view_selected(self, message: Message) -> None:
-        """Handle command selection."""
-        if isinstance(message.sender, ListView) and message.sender.highlighted is not None:
-            command = self._filtered_commands[message.sender.highlighted]
-            await self._execute_command(command)
-
-    def _update_list(self) -> None:
-        """Update the command list based on search."""
-        query = self._search.value.lower()
-        self._filtered_commands = [
-            cmd
-            for cmd in self.commands.values()
-            if query in cmd.name.lower() or query in cmd.description.lower()
-        ]
-
-        self._list.clear()
-        for cmd in self._filtered_commands:
-            self._list.append(f"{cmd.name} - {cmd.description}")
-
-    async def _execute_command(self, command: Command) -> None:
-        """Execute a command.
+    async def execute_command(self, name: str, *args: object, **kwargs: object) -> None:
+        """Execute command.
 
         Args:
-            command: Command to execute
+            name: Command name.
+            *args: Command arguments.
+            **kwargs: Command keyword arguments.
+
         """
         try:
-            await command.handler()
-            await self.emit_no_wait(self.CommandExecuted(command.name, command.category))
-            await self.hide()
-        except Exception as e:
-            logger.error(f"Error executing command {command.name}: {e}")
-            await self.emit_no_wait(self.CommandError(command.name, str(e)))
+            command = self.get_command(name)
+            await command.execute(*args, **kwargs)
+        except Exception:
+            logger.exception("Error executing command %s", name)
+            raise
