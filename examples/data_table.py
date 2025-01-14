@@ -5,16 +5,17 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
-from textual.containers import Container
-
 from pepperpy_console.tui.app import PepperApp
 from pepperpy_console.tui.commands import Command
-from pepperpy_console.tui.screens.base import PepperScreen
+from pepperpy_console.tui.screens import PepperScreen
+from pepperpy_console.tui.widgets.containers import PepperVertical
 from pepperpy_console.tui.widgets.notification import NotificationCenter
 from pepperpy_console.tui.widgets.table import Column, PepperTable
 
 if TYPE_CHECKING:
-    from textual.app import ComposeResult
+    from collections.abc import AsyncGenerator
+
+    from textual.widgets import Static
 
 
 class BaseCommand:
@@ -61,20 +62,37 @@ class SortByNameCommand(BaseCommand, Command):
 class MainScreen(PepperScreen):
     """Main application screen."""
 
-    def compose(self) -> ComposeResult:
+    async def compose(
+        self,
+    ) -> AsyncGenerator[
+        Static | PepperVertical | PepperTable | NotificationCenter, None
+    ]:
         """Compose the screen layout."""
-        with Container():
-            # Add a simple table
-            yield PepperTable(
-                columns=[
-                    Column("name", "Name", width=20),
-                    Column("age", "Age", width=10),
-                    Column("city", "City", width=20),
-                ],
-            )
+        # Create container
+        container = PepperVertical(
+            widget_id="main-container",
+            classes="pepper-vertical",
+        )
+        yield container
 
-            # Add notifications
-            yield NotificationCenter()
+        # Add a simple table
+        table = PepperTable(
+            columns=[
+                Column("name", "Name", width=20),
+                Column("age", "Age", width=10),
+                Column("city", "City", width=20),
+            ],
+            widget_id="data-table",
+            classes="pepper-table",
+        )
+        yield table
+
+        # Add notifications
+        notifications = NotificationCenter(
+            widget_id="notifications",
+            classes="notification-center",
+        )
+        yield notifications
 
 
 class ExampleApp(PepperApp):
@@ -87,14 +105,18 @@ class ExampleApp(PepperApp):
         super().__init__(screen_map={"main": MainScreen})
         self.table: PepperTable | None = None
         self.notifications: NotificationCenter | None = None
-        self.install_screen(MainScreen(), name="main")
 
     async def on_mount(self) -> None:
         """Handle application mount."""
+        # Install main screen
+        await self.push_screen(MainScreen())
+
         # Get references to widgets
-        screen = self.query_one(MainScreen)
-        self.table = screen.query_one(PepperTable)
-        self.notifications = screen.query_one(NotificationCenter)
+        if self.screen:
+            self.table = self.screen.query_one("#data-table", PepperTable)
+            self.notifications = self.screen.query_one(
+                "#notifications", NotificationCenter
+            )
 
         # Register custom commands
         self.command_manager.register_command(LoadDataCommand(self))
@@ -115,7 +137,9 @@ class ExampleApp(PepperApp):
             {"name": "Bob", "age": 35, "city": "Paris"},
         ]
         await self.table.load_data(data)
-        self.notifications.notify("Data loaded successfully", severity="information")
+        await self.notifications.notify(
+            "Data loaded successfully", severity="information"
+        )
 
     async def sort_by_name(self) -> None:
         """Sort table by name column."""
@@ -123,7 +147,7 @@ class ExampleApp(PepperApp):
             return
 
         await self.table.sort_by("name")
-        self.notifications.notify("Table sorted by name", severity="information")
+        await self.notifications.notify("Table sorted by name", severity="information")
 
 
 def main() -> None:

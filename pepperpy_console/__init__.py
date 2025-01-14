@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pepperpy_core.plugin import plugin
+from pepperpy_core.plugin import PluginManager
 
 __version__ = "0.1.0"
-__all__ = ["__version__", "plugin"]
+__all__ = ["__version__", "PluginManager"]

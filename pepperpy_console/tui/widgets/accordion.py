@@ -113,15 +113,15 @@ class AccordionItem(PepperWidget, Container):
         """Compose the item layout."""
         yield Static(
             f"▼ {self.title}" if self.is_expanded else f"▶ {self.title}",
-            id="header",
+            widget_id="header",
         )
-        with Container(id="content"):
+        with Container(widget_id="content"):
             yield self.content
 
     async def on_click(self) -> None:
         """Handle click events."""
         self.toggle()
-        self.post_message(self.Clicked(self))
+        await self.post_message(self.Clicked(self))
 
 
 class Accordion(PepperWidget, Container):

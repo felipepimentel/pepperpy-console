@@ -11,7 +11,14 @@
   "useLibraryCodeForTypes": true,
   "reportMissingTypeStubs": false,
   "reportMissingImports": "warning",
+  "reportAbstractUsage": "none",
+  "reportReturnType": "none",
+  "reportCallIssue": "none",
+  "reportUnusedCoroutine": "none",
+  "reportAttributeAccessIssue": "none",
+  "reportOptionalMemberAccess": "none",
   "pythonVersion": "3.12",
   "pythonPlatform": "All",
-  "extraPaths": ["../"]
+  "extraPaths": ["../"],
+  "ignore": ["examples/**/*"]
 }

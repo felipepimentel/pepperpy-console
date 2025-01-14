@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from textual.events import Mount
 from textual.message import Message
 from textual.widget import Widget
 
@@ -51,7 +52,7 @@ class PepperWidget(Widget):
 
         """
         self.events.append((event_type, data))
-        self.post_message(self.PepperEvent(event_type, data))
+        await self.post_message(self.PepperEvent(event_type, data))
 
     def clear_events(self) -> None:
         """Clear all events."""
@@ -67,3 +68,7 @@ class PepperWidget(Widget):
 
         """
         return self.events.copy()
+
+    async def _on_mount(self, event: Mount) -> None:
+        """Handle widget mount event."""
+        await self.post_message(self.PepperEvent("mounted", {}))

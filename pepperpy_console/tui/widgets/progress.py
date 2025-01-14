@@ -16,7 +16,7 @@ from .base import EventData, PepperWidget
 if TYPE_CHECKING:
     from rich.console import ConsoleRenderable, RichCast
     from textual.app import ComposeResult
-    from textual.widgets._widget import SupportsVisual
+    from textual.visual import SupportsVisual
 
 
 logger = structlog.get_logger(__name__)

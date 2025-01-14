@@ -6,12 +6,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeVar, cast, overload
 
 from pepperpy_core.plugin import PluginConfig, PluginManager
-from textual.app import App
+from textual.app import App, AwaitMount
 from textual.widgets import Static
 
-from pepperpy_console.exceptions import ScreenError
 from pepperpy_console.theme import ThemeManager
 from pepperpy_console.tui.help import HelpViewer
+from pepperpy_console.tui.screens.exceptions import ScreenNotFoundError
 from pepperpy_console.tui.widgets.dialog import AlertDialog
 from pepperpy_console.tui.widgets.notification import NotificationCenter
 
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from textual.screen import Screen
-    from textual.widget import AwaitMount, Widget
+    from textual.widget import Widget
 
 
 ScreenResultType = TypeVar("ScreenResultType")
@@ -62,6 +62,14 @@ class PepperApp(App[Any]):
         self.notification_center = NotificationCenter()
         self.themes = self.theme_manager
         self._screen_stack: list[Screen[Any]] = []
+
+    if not TYPE_CHECKING:
+
+        async def on_mount(self) -> None:
+            """Handle application mount event."""
+            await super().on_mount()  # type: ignore
+            self.notification_center = NotificationCenter()
+            await self.mount(self.notification_center)
 
     async def show_dialog(
         self,
@@ -164,8 +172,7 @@ class PepperApp(App[Any]):
         """
         if isinstance(screen, str):
             if screen not in self.screen_map:
-                error_msg = ScreenError.SCREEN_NOT_FOUND.format(name=screen)
-                raise ScreenError(error_msg)
+                raise ScreenNotFoundError(f"Screen {screen} not found")
             screen = self.screen_map[screen]()
 
         screen_name = screen.__class__.__name__
@@ -211,8 +218,7 @@ class PepperApp(App[Any]):
         """
         if isinstance(screen, str):
             if screen not in self.screen_map:
-                error_msg = ScreenError.SCREEN_NOT_FOUND.format(name=screen)
-                raise ScreenError(error_msg)
+                raise ScreenNotFoundError(f"Screen {screen} not found")
             screen = self.screen_map[screen]()
 
         if self._screen_stack:

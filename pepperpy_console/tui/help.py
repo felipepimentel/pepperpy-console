@@ -121,7 +121,7 @@ class HelpViewer(PepperWidget, Container):
         super().__init__(*args, **kwargs)
         self.sections: dict[str, HelpSection] = {}
         self.current_section: str | None = None
-        self._content = Vertical(id="content")
+        self._content = Vertical(widget_id="content")
 
     def compose(self) -> ComposeResult:
         """Compose the help viewer layout."""
@@ -137,7 +137,7 @@ class HelpViewer(PepperWidget, Container):
         self.sections[section.title] = section
         logger.debug("Added help section: %s", section.title)
 
-    def show_section(self, title: str) -> None:
+    async def show_section(self, title: str) -> None:
         """Show a help section.
 
         Args:
@@ -146,7 +146,7 @@ class HelpViewer(PepperWidget, Container):
         """
         if title in self.sections:
             section = self.sections[title]
-            self._content.mount(HelpContent(content=section.content))
+            await self._content.mount(HelpContent(content=section.content))
         else:
             logger.error("Help section not found: %s", title)
 

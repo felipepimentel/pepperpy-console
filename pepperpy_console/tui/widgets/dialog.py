@@ -63,7 +63,7 @@ class DialogButton(PepperWidget, Button):
         self.label = label
         self.variant = variant
         if button_id:
-            self.id = button_id
+            self.widget_id = button_id
 
 
 class Dialog(PepperWidget, Screen[T]):
@@ -95,9 +95,9 @@ class Dialog(PepperWidget, Screen[T]):
     def compose(self) -> ComposeResult:
         """Compose the dialog layout."""
         header_text = Text(str(self.title))
-        yield Static(header_text, id="header")
+        yield Static(header_text, widget_id="header")
         yield self.content
-        with Container(id="footer"):
+        with Container(widget_id="footer"):
             yield from self.buttons
 
     def dismiss(self, result: T | None = None) -> AwaitComplete:
@@ -111,7 +111,9 @@ class Dialog(PepperWidget, Screen[T]):
 
         """
         self._result = result
-        return self.app.pop_screen()
+        if self.app is not None:
+            return self.app.pop_screen()
+        return AwaitComplete()
 
 
 class ConfirmDialog(Dialog[bool]):
@@ -148,10 +150,10 @@ class ConfirmDialog(Dialog[bool]):
     async def on_dialog_button_clicked(self, event: DialogButton.Clicked) -> None:
         """Handle button clicks."""
         button = event.sender
-        if button.id == "confirm" and self.on_confirm is not None:
+        if button.widget_id == "confirm" and self.on_confirm is not None:
             await self.on_confirm()
             await self.dismiss(result=True)
-        elif button.id == "cancel" and self.on_cancel is not None:
+        elif button.widget_id == "cancel" and self.on_cancel is not None:
             await self.on_cancel()
             await self.dismiss(result=False)
 
