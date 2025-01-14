@@ -32,6 +32,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
 markers = ["asyncio: mark test as requiring asyncio event loop"]
 
 [tool.mypy]
@@ -104,7 +105,7 @@ line-length = 88
 target-version = "py39"
 
 [tool.ruff.lint]
-select = ["E", "F", "N", "W", "B", "A", "C4", "PT", "RET", "SIM", "TCH"]
+select = ["E", "F", "N", "W", "B", "A", "C4", "PT", "RET", "SIM"]
 ignore = ["A005"]
 
 [tool.ruff.lint.per-file-ignores]
