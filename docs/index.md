@@ -1,10 +1,10 @@
-# PepperPy Console Documentation
+# PepperPy Documentation
 
-Welcome to the PepperPy Console documentation! This documentation will help you understand and use the PepperPy Console library effectively.
+Welcome to the PepperPy documentation! This documentation will help you understand and use the PepperPy library effectively.
 
 ## Overview
 
-PepperPy Console is a powerful Python library for building text-based user interfaces (TUI) with a focus on extensibility and ease of use. It provides:
+PepperPy is a powerful Python library for building text-based user interfaces (TUI) with a focus on extensibility and ease of use. It provides:
 
 - A robust CLI system with command and plugin support
 - A flexible TUI framework built on top of Textual
@@ -17,13 +17,14 @@ PepperPy Console is a powerful Python library for building text-based user inter
 ### Installation
 
 ```bash
-pip install pepperpy-console
+pip install pepperpy
 ```
 
 ### Basic Usage
 
 ```python
 from pepperpy import PepperApp
+from pepperpy.widgets import Static
 
 class MyApp(PepperApp):
     def compose(self):

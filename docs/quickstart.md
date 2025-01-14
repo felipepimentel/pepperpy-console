@@ -1,17 +1,19 @@
 # Quick Start Guide
 
-This guide will help you get started with PepperPy Console quickly.
+This guide will help you get started with PepperPy quickly.
 
 ## Basic Application
 
-Create your first PepperPy Console application:
+Create your first PepperPy application:
 
 ```python
-from pepperpy import PepperApp, PepperScreen, Static
+from pepperpy import PepperApp
+from pepperpy.screens import PepperScreen
+from pepperpy.widgets import Static
 
 class WelcomeScreen(PepperScreen):
     async def compose(self):
-        yield Static("Welcome to PepperPy Console!")
+        yield Static("Welcome to PepperPy!")
 
 class MyApp(PepperApp):
     async def on_mount(self):
@@ -32,7 +34,8 @@ python app.py
 Create a CLI application with commands:
 
 ```python
-from pepperpy import PepperApp, Command
+from pepperpy import PepperApp
+from pepperpy.cli import Command
 
 class CLIApp(PepperApp):
     def __init__(self):
@@ -58,12 +61,9 @@ app.run()
 Build an interactive form:
 
 ```python
-from pepperpy import (
-    PepperApp,
-    PepperScreen,
-    PepperForm,
-    FormField
-)
+from pepperpy import PepperApp
+from pepperpy.screens import PepperScreen
+from pepperpy.widgets import PepperForm, FormField
 
 class LoginScreen(PepperScreen):
     def __init__(self):
@@ -93,7 +93,9 @@ Apply and switch themes:
 
 ```python
 from pathlib import Path
-from pepperpy import PepperApp, PepperScreen, Static
+from pepperpy import PepperApp
+from pepperpy.screens import PepperScreen
+from pepperpy.widgets import Static
 
 class ThemedApp(PepperApp):
     async def on_mount(self):
@@ -113,12 +115,9 @@ app.run()
 Display data in tables:
 
 ```python
-from pepperpy import (
-    PepperApp,
-    PepperScreen,
-    PepperTable,
-    Column
-)
+from pepperpy import PepperApp
+from pepperpy.screens import PepperScreen
+from pepperpy.widgets import PepperTable, Column
 
 class DataScreen(PepperScreen):
     def __init__(self):
@@ -147,12 +146,10 @@ app.run()
 Respond to user interactions:
 
 ```python
-from pepperpy import (
-    PepperApp,
-    PepperScreen,
-    PepperWidget,
-    Event
-)
+from pepperpy import PepperApp
+from pepperpy.screens import PepperScreen
+from pepperpy.widgets import PepperWidget
+from pepperpy.events import Event
 
 class ClickableWidget(PepperWidget):
     def on_click(self, event: Event):
@@ -169,11 +166,12 @@ app.run()
 
 ## Using Plugins
 
-PepperPy Console uses the plugin system from `pepperpy-core`. To create and use plugins:
+Create and use plugins with PepperPy:
 
 ```python
-from pepperpy_core.plugin import Plugin, PluginConfig
-from pepperpy import Command
+from pepperpy import PepperApp
+from pepperpy.plugins import Plugin, PluginConfig
+from pepperpy.cli import Command
 
 class MyPlugin(Plugin):
     def configure(self) -> PluginConfig:
@@ -212,8 +210,6 @@ app.plugins.register(plugin)
 app.run()
 ```
 
-For more details on the plugin system, refer to the [pepperpy-core documentation](https://felipepimentel.github.io/pepperpy-core/modules/plugin.html).
-
 ## Next Steps
 
 - Explore the [CLI System Guide](cli/index.md)
@@ -225,5 +221,5 @@ For more details on the plugin system, refer to the [pepperpy-core documentation
 ## Getting Help
 
 - Join our [Discord community](https://discord.gg/pepperpy)
-- Check the [FAQ](https://pepperpy-console.readthedocs.io/en/latest/faq/)
-- Open an [Issue](https://github.com/yourusername/pepperpy-console/issues) 
+- Check the [FAQ](https://github.com/felipepimentel/pepperpy/wiki/FAQ)
+- Open an [Issue](https://github.com/felipepimentel/pepperpy/issues) 
